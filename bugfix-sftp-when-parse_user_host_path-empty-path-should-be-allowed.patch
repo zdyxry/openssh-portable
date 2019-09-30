@@ -1,0 +1,44 @@
+From 68fae005d551a1172085a2f91e5c4d53c9e07746 Mon Sep 17 00:00:00 2001
+From: xuchunmei <xuchunmei@huawei.com>
+Date: Sat, 9 Feb 2019 04:51:29 -0500
+Subject: [PATCH] sftp: when parse_user_host_path, empty path should be allowed
+
+when using "sftp root@[2001::16%eth0]", the error output:
+ssh: Could not resolve hostname [2001::16%eth0]: Name
+or service not known
+Connection closed.
+Connection closed
+
+fix sftp ipv6 login failed accidental like this:
+File "/root/!" not found.
+
+---
+ misc.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/misc.c b/misc.c
+index 7c4f395..1ec2aa8 100644
+--- a/misc.c
++++ b/misc.c
+@@ -554,6 +554,8 @@ colon(char *cp)
+ 			flag = 1;
+ 		if (*cp == ']' && *(cp+1) == ':' && flag)
+ 			return (cp+1);
++		if (*cp == ']' && *(cp+1) == '\0' && flag)
++			return (cp+1);
+ 		if (*cp == ':' && !flag)
+ 			return (cp);
+ 		if (*cp == '/')
+@@ -599,7 +601,8 @@ parse_user_host_path(const char *s, char **userp, char **hostp, char **pathp)
+ 		goto out;
+ 
+ 	/* Extract optional path */
+-	*tmp++ = '\0';
++	if (*tmp != '\0')
++		*tmp++ = '\0';
+ 	if (*tmp == '\0')
+ 		tmp = ".";
+ 	path = xstrdup(tmp);
+-- 
+1.8.3.1
+
