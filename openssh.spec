@@ -10,7 +10,7 @@
 
 Name:          openssh
 Version:       7.8p1
-Release:       4
+Release:       6
 URL:           https://www.openssh.com/portable.html
 License:       BSD
 Summary:       An open source implementation of SSH protocol version 2
@@ -58,7 +58,7 @@ Patch702:      openssh-5.1p1-askpass-progress.patch
 #https://bugzilla.redhat.com/show_bug.cgi?id=198332
 Patch703:      openssh-4.3p2-askpass-grab-info.patch
 #patch from redhat 
-Patch707:      openssh-7.7p1-redhat.patch
+Patch707:      openssh-7.7p1.patch
 Patch709:      openssh-6.2p1-vendor.patch
 Patch711:      openssh-7.8p1-UsePAM-warning.patch
 Patch712:      openssh-6.3p1-ctr-evp-fast.patch
@@ -117,6 +117,13 @@ Patch6021:     upstream-Fix-BN_is_prime_-calls-in-SSH-the-API-retur.patch
 Patch6022:     upstream-Always-initialize-2nd-arg-to-hpdelim2.-It-p.patch
 Patch6023:     Cygwin-Change-service-name-to-cygsshd.patch
 Patch6024:     openssh-fix-typo-that-prevented-detection-of-Linux-V.patch
+
+Patch6025:     CVE-2019-6109-1.patch
+Patch6026:     CVE-2019-6109-2.patch
+Patch6027:     CVE-2019-6111-1.patch
+Patch6028:     CVE-2019-6111-2.patch
+Patch6029:     CVE-2019-16905.patch
+Patch6030:     upstream-fix-sshd-T-without-C.patch
 
 Patch9004:     bugfix-sftp-when-parse_user_host_path-empty-path-should-be-allowed.patch
 Patch9005:     bugfix-openssh-6.6p1-log-usepam-no.patch
@@ -190,7 +197,7 @@ popd
 %patch609 -p1 -b .x11
 %patch702 -p1 -b .progress
 %patch703 -p1 -b .grab-info
-%patch707 -p1 -b .redhat
+%patch707 -p1 
 %patch709 -p1 -b .vendor
 %patch711 -p1 -b .log-usepam-no
 %patch712 -p1 -b .evp-ctr
@@ -253,10 +260,17 @@ popd
 %patch6022 -p1
 %patch6023 -p1
 %patch6024 -p1
+%patch6025 -p1
+%patch6026 -p1
+%patch6027 -p1
+%patch6028 -p1
+%patch6029 -p1
 
 %patch9004 -p1
 %patch9005 -p1
 %patch9006 -p1
+
+%patch6030 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-0.10.3
@@ -443,5 +457,17 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Mon Dec 23 2019 openEuler Buildteam <buildteam@openeuler.org> - 7.8P1-6
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:delete the patch
+
+* Sat Dec 21 2019 openEuler Buildteam <buildteam@openeuler.org> - 7.8P1-5
+- Type:cves
+- ID:NA
+- SUG:restart
+- DESC:fix cves
+
 * Fri Sep 20 2019 openEuler Buildteam <buildteam@openeuler.org> - 7.8p1-4
 - Package init
