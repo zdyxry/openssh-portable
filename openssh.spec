@@ -10,7 +10,7 @@
 
 Name:          openssh
 Version:       7.8p1
-Release:       6
+Release:       7
 URL:           https://www.openssh.com/portable.html
 License:       BSD
 Summary:       An open source implementation of SSH protocol version 2
@@ -128,6 +128,9 @@ Patch6030:     upstream-fix-sshd-T-without-C.patch
 Patch9004:     bugfix-sftp-when-parse_user_host_path-empty-path-should-be-allowed.patch
 Patch9005:     bugfix-openssh-6.6p1-log-usepam-no.patch
 Patch9006:     bugfix-openssh-add-option-check-username-splash.patch
+Patch9007:     feature-openssh-7.4-hima-sftpserver-oom-and-fix.patch
+Patch9008:     bugfix-supply-callback-to-PEM-read-bio-PrivateKey.patch
+Patch9009:     bugfix-openssh-fix-sftpserver.patch
 
 Requires:      /sbin/nologin libselinux >= 2.3-5 audit-libs >= 1.0.8
 Requires:      fipscheck-lib >= 1.3.0 
@@ -269,6 +272,9 @@ popd
 %patch9004 -p1
 %patch9005 -p1
 %patch9006 -p1
+%patch9007 -p1
+%patch9008 -p1
+%patch9009 -p1
 
 %patch6030 -p1
 
@@ -457,6 +463,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Tue Jan 21 2020 openEuler Buildteam <buildteam@openeuler.org> - 7.8P1-7
+- Type:bugfix
+- ID:NA
+- SUG:NA
+- DESC:add the patch for bugfix
+
 * Mon Dec 23 2019 openEuler Buildteam <buildteam@openeuler.org> - 7.8P1-6
 - Type:bugfix
 - ID:NA

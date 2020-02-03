@@ -1,0 +1,71 @@
+From 28bdd1cd8177f0af2827524fb79aa4d8ff52fdf7 Mon Sep 17 00:00:00 2001
+From: majun65 <majun65@huawei.com>
+Date: Mon, 11 Nov 2019 14:19:47 +0800
+Subject: [PATCH] Module:
+
+Signed-off-by: majun65 <majun65@huawei.com>
+---
+ sftp-server.c | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
+
+diff --git a/sftp-server.c b/sftp-server.c
+index f39178d..392df9d 100644
+--- a/sftp-server.c
++++ b/sftp-server.c
+@@ -145,6 +145,11 @@ read_config_file(const char* pszPath, char(*szConfigPath)[MAXPATHLEN])
+             break;
+         }
+         //Fix bug exceed max permit dir 2013-10-18 end
++        if ( strlen(szBuffer) > MAXPATHLEN )
++        {
++            debug("[sftp-server]Exceed max number of realpath.\n");
++            break;
++        }
+         memcpy(szConfigPath[linenum-1], szBuffer , strlen(szBuffer));
+         if ( szConfigPath[linenum-1][strlen(szBuffer)-1] == '\n' )
+         {
+@@ -155,7 +160,7 @@ read_config_file(const char* pszPath, char(*szConfigPath)[MAXPATHLEN])
+             }
+         }
+     }
+-
++    free(szBuffer);
+     fclose(fd);
+     storage_flag = 1;
+     return RETURN_OK;
+@@ -417,7 +422,12 @@ ck_load_server_config(const char *filename, char *conf)
+ 
+ 		lenth += strlen(cp);
+ 	}
+-
++	if (lenth + 1 > BUF_MAX_LEN)
++	{
++		error("%s too big, the max size is %d!", filename, BUF_MAX_LEN);
++		fclose(f);
++		return 0;
++	}
+ 	memcpy(conf + lenth, "\0", 1);
+ 
+ 	fclose(f);
+@@ -1972,8 +1982,6 @@ process_extended_fstatvfs(u_int32_t id)
+ 	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
+ 	{
+ 		send_status(id, SSH2_FX_PERMISSION_DENIED);
+-		free(path);
+-
+ 		return;
+ 	}
+ 
+@@ -2030,8 +2038,6 @@ process_extended_fsync(u_int32_t id)
+ 	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
+ 	{
+ 		send_status(id, SSH2_FX_PERMISSION_DENIED);
+-		free(path);
+-
+ 		return;
+ 	}
+ 
+-- 
+2.19.1
+
+

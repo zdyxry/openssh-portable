@@ -1,0 +1,911 @@
+From 5e7d567d7c7f61d4ee4f2cb2d56b33fadafd980c Mon Sep 17 00:00:00 2001
+From: s00467541 <shenyining@huawei.com>
+Date: Tue, 12 Feb 2019 19:40:42 +0800
+Subject: [PATCH] sync patch, add new judgement and
+ delete default sftp-put-check.cfg
+
+Signed-off-by: s00467541 <shenyining@huawei.com>
+---
+ sftp-server.c | 699 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 688 insertions(+), 11 deletions(-)
+
+diff --git a/sftp-server.c b/sftp-server.c
+index 3fbc1f8..fd42be9 100644
+--- a/sftp-server.c
++++ b/sftp-server.c
+@@ -29,6 +29,12 @@
+ #include <sys/statvfs.h>
+ #endif
+ 
++/* add begin sftp oom fix */
++#include <sys/sysinfo.h>
++#include <sys/vfs.h>
++#include <linux/magic.h>
++/* add end sftp oom fix */
++
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
+@@ -51,6 +57,17 @@
+ #include "sftp.h"
+ #include "sftp-common.h"
+ 
++static int storage_flag = 0;
++/* add begin 2013/10/12 SR-0000287268 */
++#define RETURN_OK 0
++#define RETURN_ERROR -1
++#define FLAG_PROTECTDIR 0
++#define FLAG_PERMITOP 1
++/* add end  2013/10/12 SR-0000287268 */
++/*add for oom*/
++static int cflag = 0;
++/*add for oom end*/
++
+ /* Our verbosity */
+ static LogLevel log_level = SYSLOG_LEVEL_ERROR;
+ 
+@@ -87,6 +104,452 @@ struct Stat {
+ 	Attrib attrib;
+ };
+ 
++/* add begin 2013/10/12 SR-0000287268*/
++#define MAX_DIR_NUM 100
++/* sftppermit path array */
++char szPermitPath[MAX_DIR_NUM][MAXPATHLEN] = {0};
++char szDenyPath[MAX_DIR_NUM][MAXPATHLEN] = {0};
++const char *pszPermitPath = "/usr/local/etc/sftppermit.config";
++const char *pszDenyPath = "/usr/local/etc/sftpdeny.config";
++char szPermitPath_other[MAX_DIR_NUM][MAXPATHLEN] = {0};
++char szDenyPath_other[MAX_DIR_NUM][MAXPATHLEN] = {0};
++const char *pszPermitPath_other = "/usr/local/etc/other_sftppermit.config";
++const char *pszDenyPath_other= "/usr/local/etc/other_sftpdeny.config";
++static int
++read_config_file(const char* pszPath, char(*szConfigPath)[MAXPATHLEN])
++{
++    FILE *fd = NULL;
++    char *szBuffer = NULL;
++    size_t len = 0;
++    unsigned long linenum = 0;
++
++    if (NULL == pszPath)
++    {
++        debug("[sftp-server]Config file %s is NULL.\n", pszPath);
++        return RETURN_ERROR;
++    }
++
++    if (NULL == (fd = fopen(pszPath, "r")))
++    {
++        debug("[sftp-server]Open config file %s failed.\n", pszPath);
++        return RETURN_ERROR;
++    }
++
++    while (RETURN_ERROR != getline(&szBuffer, &len, fd))
++    {
++        linenum++;
++        //Fix bug exceed max permit dir 2013-10-18 begin
++        if ( linenum > MAX_DIR_NUM )
++        {
++            debug("[sftp-server]Exceed max number of config dir.\n");
++            break;
++        }
++        //Fix bug exceed max permit dir 2013-10-18 end
++        memcpy(szConfigPath[linenum-1], szBuffer , strlen(szBuffer));
++        if ( szConfigPath[linenum-1][strlen(szBuffer)-1] == '\n' )
++        {
++            szConfigPath[linenum-1][strlen(szBuffer)-1] = '\0';
++            if ( szConfigPath[linenum-1][strlen(szBuffer)-2] == '\r' )
++            {
++                szConfigPath[linenum-1][strlen(szBuffer)-2] = '\0';
++            }
++        }
++    }
++
++    fclose(fd);
++    storage_flag = 1;
++    return RETURN_OK;
++}
++
++static int
++path_permition_check(const char *pszPath,int iflag)
++{
++    unsigned int iCount = 0;
++    char szResolvedname[MAXPATHLEN] = {0};
++    gid_t server_user_gid, local_user_gid;
++    int path_len = 0;
++
++    if(storage_flag != 1)
++    	return RETURN_OK;
++
++    if(NULL == pszPath)
++    {
++        debug("[sftp-server]Inputed param for check is NULL.\n");
++        return RETURN_ERROR;
++    }
++
++    realpath(pszPath, szResolvedname);
++    local_user_gid = pw->pw_gid;
++    server_user_gid =  local_user_gid;
++    if(NULL != szResolvedname)
++    {
++        if (server_user_gid == 0)
++        {
++            for (iCount=0; iCount < MAX_DIR_NUM ; iCount++)
++            {
++                path_len = strlen(szDenyPath[iCount]);
++                if((0 != szDenyPath[iCount][0]) && (szResolvedname == strstr(szResolvedname,szDenyPath[iCount]))){
++                    if(szResolvedname[path_len] == '\0' || szResolvedname[path_len] == '/')
++                        return RETURN_ERROR;
++                }
++            }
++
++            for (iCount=0; iCount < MAX_DIR_NUM ; iCount++)
++            {
++                path_len = strlen(szPermitPath[iCount]);
++                if((0 != szPermitPath[iCount][0])
++                    && (szResolvedname == strstr(szResolvedname,szPermitPath[iCount]))
++                        && (szResolvedname[path_len] == '\0' || szResolvedname[path_len] == '/'))
++                {
++                    if ((FLAG_PROTECTDIR == iflag) && (0 == strcmp(szResolvedname,szPermitPath[iCount])))
++                    {
++                        debug("[sftp-server]Can't operate protected dir.\n");
++                        return RETURN_ERROR;
++                    }
++                    return RETURN_OK;
++                }
++            }
++        }
++        else
++        {
++            for (iCount=0; iCount < MAX_DIR_NUM ; iCount++)
++            {
++                path_len = strlen(szDenyPath_other[iCount]);
++                if((0 != szDenyPath_other[iCount][0]) && (szResolvedname == strstr(szResolvedname,szDenyPath_other[iCount])))
++                    if(szResolvedname[path_len] == '\0' || szResolvedname[path_len] == '/')
++                        return RETURN_ERROR;
++            }
++
++            for (iCount=0; iCount < MAX_DIR_NUM ; iCount++)
++            {
++                path_len = strlen(szPermitPath_other[iCount]);
++                if((0 != szPermitPath_other[iCount][0])
++                    && (szResolvedname == strstr(szResolvedname,szPermitPath_other[iCount]))
++                        && (szResolvedname[path_len] == '\0' || szResolvedname[path_len] == '/'))
++                {
++                    if ((FLAG_PROTECTDIR == iflag) && (0 == strcmp(szResolvedname,szPermitPath_other[iCount])))
++                    {
++                        debug("[sftp-server]Can't operate protected dir.\n");
++                        return RETURN_ERROR;
++                    }
++                    return RETURN_OK;
++                }
++            }
++
++        }
++    }
++
++    return RETURN_ERROR;
++}
++/* add end 2013/10/12 SR-0000287268 */
++
++/* add begin sftp oom fix */
++#define	BUF_MAX_LEN	4096		/*Max lenth*/
++#define	MAX_LINE_LEN	80		/*Max line lenth*/
++
++#define	DEFAULT_FILESIZE	4096
++#define	DEFAULT_MEMSIZE	    0
++
++const char *ck_config_file_name = "/usr/local/etc/sftp-put-check.cfg";
++
++typedef struct {
++	int max_file_size;
++	int min_freemem_size;
++}CheckOptions;
++
++static CheckOptions ckoptions;
++
++/* Keyword tokens. */
++typedef enum {
++	sBadOption,
++	sMaxFileSize,
++	sMinFreeMemSize
++} checkOpCodes;
++
++static struct {
++	const char *name;
++	checkOpCodes opcode;
++} keywords[] = {
++	{ "MaxFileSize", sMaxFileSize },
++	{ "MinFreeMemSize", sMinFreeMemSize },
++	{ NULL, sBadOption }
++};
++
++static checkOpCodes
++ck_parse_token(const char *cp, const char *filename, int linenum)
++{
++	int i;
++	for (i = 0; keywords[i].name; i++)
++	{
++		if (strcasecmp(cp, keywords[i].name) == 0)
++		{
++			return keywords[i].opcode;
++		}
++	}
++
++	error("%s: line %d: Bad configuration option: %s", filename, linenum, cp);
++
++	return sBadOption;
++}
++static int
++ck_process_server_config_line(char *line, const char *filename, int linenum)
++{
++	char *cp, *arg, *endofnumber;
++       endofnumber = NULL;
++       cp = NULL;
++       arg = NULL;
++	int *intptr = NULL;
++	int value;
++	checkOpCodes opcode;
++
++	cp = line;
++	if ((arg = strdelim(&cp)) == NULL)
++	{
++		return 1;
++	}
++
++	/* Ignore leading whitespace */
++	if (*arg == '\0')
++	{
++		arg = strdelim(&cp);
++	}
++
++	if (!arg || !*arg || *arg == '#')
++	{
++		return 1;
++	}
++
++	opcode = ck_parse_token(arg, filename, linenum);
++
++	switch (opcode)
++	{
++	case sBadOption:
++		/* don't panic, but count bad ckoptions */
++		return 0;
++	case sMaxFileSize:
++		intptr = &ckoptions.max_file_size;
++		goto parse_int;
++
++	case sMinFreeMemSize:
++		intptr = &ckoptions.min_freemem_size;
++		goto parse_int;
++parse_int:
++		arg = strdelim(&cp);
++		if (!arg || *arg == '\0')
++		{
++			error("%.200s line %d: Missing argument.", filename, linenum);
++			return 0;
++		}
++
++		if (arg[0] < '0' || arg[0] > '9')
++		{
++			error("%.200s line %d: Bad number.", filename, linenum);
++			return 0;
++		}
++		/* Octal, decimal, or hex format? */
++		value = strtol(arg, &endofnumber, 0);
++		if (arg == endofnumber)
++		{
++			error("%.200s line %d: Bad number.", filename, linenum);
++			return 0;
++		}
++
++		*intptr = value;
++
++		break;
++	default:
++		error("%s line %d: Missing handler for opcode %s (%d) ", filename, linenum, arg, opcode);
++		break;
++	}
++
++	if ((arg = strdelim(&cp)) != NULL && *arg != '\0')
++	{
++		error("%s line %d: garbage at end of line; \"%.200s\". ", filename, linenum, arg);
++		return 0;
++	}
++
++	return 1;
++}
++
++static int
++ck_load_server_config(const char *filename, char *conf)
++{
++	char line[MAX_LINE_LEN + 1], *cp;
++       cp = NULL;
++	FILE *f;
++	int lineno = 0;
++	int lenth = 0;
++
++	if ((f = fopen(filename, "r")) == NULL)
++	{
++		error("Failed to open config file: %s ,use default setting", filename);
++		return 2;
++	}
++
++	while (fgets(line, sizeof(line), f))
++	{
++		lineno++;
++		if (strlen(line) > MAX_LINE_LEN)
++		{
++			error("%s line %d too long, the max length is %d", filename, lineno, MAX_LINE_LEN);
++			fclose(f);
++			return 0;
++		}
++		/*
++ * 		 * Trim out comments and strip whitespace
++ * 		 * NB - preserve newlines, they are needed to reproduce
++ * 		 * line numbers later for error messages
++ * 		 */
++		if ((cp = strchr(line, '#')) != NULL)
++		{
++			memcpy(cp, "\n", 2);
++		}
++		cp = line + strspn(line, " \t\r");
++
++		if(lenth + strlen(cp) > BUF_MAX_LEN)
++		{
++			error("%s too big, the max size is %d!", filename, BUF_MAX_LEN);
++			fclose(f);
++			return 0;
++		}
++
++		memcpy(conf + lenth, cp, strlen(cp));
++
++		lenth += strlen(cp);
++	}
++
++	memcpy(conf + lenth, "\0", 1);
++
++	fclose(f);
++
++	return 1;
++}
++
++static int
++ck_parse_server_config(const char *filename)
++{
++	int linenum, ret_load, bad_options = 0;
++	char *cp = NULL;
++	char *obuf = NULL;
++    	char *cbuf = NULL;
++
++	obuf = cbuf = malloc(BUF_MAX_LEN);
++	if (cbuf == NULL)
++	{
++		error("Malloc: out of memory (allocating %lu bytes)", BUF_MAX_LEN);
++		return 0;
++	}
++
++	ret_load = ck_load_server_config(filename, cbuf);
++
++	if(ret_load == 0)
++	{
++		error("Config file %s is not set properly", filename);
++		free(obuf);
++		return 0;
++	}
++
++	if(ret_load == 2)
++	{
++		debug("Load config file %s error, use default setting", filename);
++		free(obuf);
++		return 1;
++	}
++
++	linenum = 1;
++	while ((cp = strsep(&cbuf, "\n")) != NULL)
++	{
++		if (!ck_process_server_config_line(cp, filename, linenum++) )
++		{
++			bad_options++;
++		}
++	}
++
++	free(obuf);
++
++	if (bad_options > 0)
++	{
++		error("%s: terminating, %d bad configuration ckoptions", filename, bad_options);
++		return 0;
++	}
++
++	return 1;
++}
++
++void
++initialize_check_options(CheckOptions *ckoptions)
++{
++	memset(ckoptions, 0, sizeof(*ckoptions));
++
++	ckoptions->max_file_size = DEFAULT_FILESIZE;
++
++	ckoptions->min_freemem_size = DEFAULT_MEMSIZE;
++}
++
++static int
++check_before_write(const char *path, u_int64_t size)
++{
++	struct sysinfo meminfo;
++	u_int64_t maxfilesize = 0;
++	u_int64_t minfreememsize = 0;
++
++	if (storage_flag != 1)
++		return 1;
++
++	if (NULL == path)
++	{
++		error("process_write: Upload file is NULL.");
++		return 0;
++	}
++
++	if (cflag == 0)
++	{
++		debug3("not put file to tmpfs or ramfs, do not need check free memory");
++		return 1;
++	}
++
++	debug("check file size and free mem info before write");
++
++	sysinfo(&meminfo);
++	maxfilesize = (u_int64_t)(ckoptions.max_file_size)*1024*1024;
++	minfreememsize = (u_int64_t)(ckoptions.min_freemem_size)*1024*1024;
++
++	logit("upload file :%s size %llu freeram %lu bytes MaxFileSize %lu bytes MinFreeMemSize %lu bytes.",
++	         path, size, meminfo.freeram, maxfilesize, minfreememsize);
++
++	/*check file size*/
++	if (size >= maxfilesize){
++		error("process_write: file %s exceed %d MB, upload failed.", path, ckoptions.max_file_size);
++		return 0;
++	}
++
++	/*check free mem*/
++	if (meminfo.freeram <= minfreememsize){
++		error("process_write: Memory limit set to %d MB, no space(memeroy system) left, upload failed.",
++		         ckoptions.min_freemem_size);
++		return 0;
++	}
++
++	return 1;
++}
++
++static void
++check_fstype(const char *path)
++{
++    struct statfs buf;
++
++    memset(&buf, 0, sizeof(buf));
++    if (statfs(path, &buf) !=0)
++    {
++        error("fstype unkown, do not check free memeroy.");
++    }
++    else if (buf.f_type == TMPFS_MAGIC || buf.f_type == RAMFS_MAGIC)
++    {
++        cflag = 1;
++    }
++}
++/* add end sftp oom fix */
++
+ /* Packet handlers */
+ static void process_open(u_int32_t id);
+ static void process_close(u_int32_t id);
+@@ -689,6 +1148,15 @@ process_open(u_int32_t id)
+ 	    (r = sshbuf_get_u32(iqueue, &pflags)) != 0 || /* portable flags */
+ 	    (r = decode_attrib(iqueue, &a)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
++	/* add begin 2013/10/12 SR-0000287268 */
++	if (RETURN_OK != path_permition_check(name,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(name);
++
++		return;
++	}
++	/* add end 2013/10/12 SR-0000287268 */
+ 
+ 	debug3("request %u: open flags %d", id, pflags);
+ 	flags = flags_from_portable(pflags);
+@@ -722,6 +1190,8 @@ process_open(u_int32_t id)
+ 		(void) umask(old_umask); /* restore umask to something sane */
+ 	if (status != SSH2_FX_OK)
+ 		send_status(id, status);
++	if (storage_flag == 1)
++		check_fstype(name);
+ 	free(name);
+ }
+ 
+@@ -753,6 +1223,17 @@ process_read(u_int32_t id)
+ 	    (r = sshbuf_get_u32(iqueue, &len)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	/* add begin 2013/10/12 SR-0000287268*/
++	char *path = NULL;
++	path = handle_to_name(handle);
++	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++
++		return;
++	}
++	/* add end 2013/10/12 SR-0000287268*/
++
+ 	debug("request %u: read \"%s\" (handle %d) off %llu len %d",
+ 	    id, handle_to_name(handle), handle, (unsigned long long)off, len);
+ 	if (len > sizeof buf) {
+@@ -794,6 +1275,18 @@ process_write(u_int32_t id)
+ 	    (r = sshbuf_get_string(iqueue, &data, &len)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	/* add begin 2013/10/12 SR-0000287268*/
++	char *path = NULL;
++	path = handle_to_name(handle);
++	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++               free(data);
++
++		return;
++	}
++	/* add end 2013/10/12 SR-0000287268*/
++
+ 	debug("request %u: write \"%s\" (handle %d) off %llu len %zu",
+ 	    id, handle_to_name(handle), handle, (unsigned long long)off, len);
+ 	fd = handle_to_fd(handle);
+@@ -807,16 +1299,30 @@ process_write(u_int32_t id)
+ 			error("process_write: seek failed");
+ 		} else {
+ /* XXX ATOMICIO ? */
+-			ret = write(fd, data, len);
+-			if (ret < 0) {
+-				error("process_write: write failed");
+-				status = errno_to_portable(errno);
+-			} else if ((size_t)ret == len) {
+-				status = SSH2_FX_OK;
+-				handle_update_write(handle, ret);
+-			} else {
+-				debug2("nothing at all written");
++			/* add begin sftp oom fix */
++			if (storage_flag == 1)
++				debug("cflag is %d",cflag);
++			if (!check_before_write(handle_to_name(handle), off)){
++				error("check file size and free mem info before write failed");
++				unlink(handle_to_name(handle));
+ 				status = SSH2_FX_FAILURE;
++				send_status(id, status);
++				free(data);
++				sftp_server_cleanup_exit(1);
++			/* add end sftp oom fix */
++			} else {
++
++				ret = write(fd, data, len);
++				if (ret < 0) {
++					error("process_write: write failed");
++					status = errno_to_portable(errno);
++				} else if ((size_t)ret == len) {
++					status = SSH2_FX_OK;
++					handle_update_write(handle, ret);
++				} else {
++					debug2("nothing at all written");
++					status = SSH2_FX_FAILURE;
++				}
+ 			}
+ 		}
+ 	}
+@@ -835,6 +1341,16 @@ process_do_stat(u_int32_t id, int do_lstat)
+ 	if ((r = sshbuf_get_cstring(iqueue, &name, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	/* add begin  2013/10/12 SR-0000287268 */
++	if (RETURN_OK != path_permition_check(name,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(name);
++
++		return;
++	}
++	/* add end  2013/10/12 SR-0000287268 */
++
+ 	debug3("request %u: %sstat", id, do_lstat ? "l" : "");
+ 	verbose("%sstat name \"%s\"", do_lstat ? "l" : "", name);
+ 	r = do_lstat ? lstat(name, &st) : stat(name, &st);
+@@ -871,6 +1387,16 @@ process_fstat(u_int32_t id)
+ 
+ 	if ((r = get_handle(iqueue, &handle)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
++
++	char *path = NULL;
++	path = handle_to_name(handle);
++	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++
++		return;
++	}
++
+ 	debug("request %u: fstat \"%s\" (handle %u)",
+ 	    id, handle_to_name(handle), handle);
+ 	fd = handle_to_fd(handle);
+@@ -911,6 +1437,14 @@ process_setstat(u_int32_t id)
+ 	    (r = decode_attrib(iqueue, &a)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if (RETURN_OK != path_permition_check(name,FLAG_PROTECTDIR))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(name);
++
++		return;
++	}
++
+ 	debug("request %u: setstat name \"%s\"", id, name);
+ 	if (a.flags & SSH2_FILEXFER_ATTR_SIZE) {
+ 		logit("set \"%s\" size %llu",
+@@ -965,6 +1499,13 @@ process_fsetstat(u_int32_t id)
+ 	else {
+ 		char *name = handle_to_name(handle);
+ 
++		if (RETURN_OK != path_permition_check(name,FLAG_PROTECTDIR))
++		{
++			send_status(id, SSH2_FX_PERMISSION_DENIED);
++
++			return;
++		}
++
+ 		if (a.flags & SSH2_FILEXFER_ATTR_SIZE) {
+ 			logit("set \"%s\" size %llu",
+ 			    name, (unsigned long long)a.size);
+@@ -1022,6 +1563,14 @@ process_opendir(u_int32_t id)
+ 	if ((r = sshbuf_get_cstring(iqueue, &path, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(path);
++
++		return;
++	}
++
+ 	debug3("request %u: opendir", id);
+ 	logit("opendir \"%s\"", path);
+ 	dirp = opendir(path);
+@@ -1076,6 +1625,12 @@ process_readdir(u_int32_t id)
+ 			    strcmp(path, "/") ? "/" : "", dp->d_name);
+ 			if (lstat(pathname, &st) < 0)
+ 				continue;
++
++			if (RETURN_OK != path_permition_check(pathname,FLAG_PERMITOP))
++			{
++				continue;
++			}
++
+ 			stat_to_attrib(&st, &(stats[count].attrib));
+ 			stats[count].name = xstrdup(dp->d_name);
+ 			stats[count].long_name = ls_file(dp->d_name, &st, 0, 0);
+@@ -1107,6 +1662,14 @@ process_remove(u_int32_t id)
+ 	if ((r = sshbuf_get_cstring(iqueue, &name, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if (RETURN_OK != path_permition_check(name,FLAG_PROTECTDIR))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(name);
++
++		return;
++	}
++
+ 	debug3("request %u: remove", id);
+ 	logit("remove name \"%s\"", name);
+ 	r = unlink(name);
+@@ -1126,6 +1689,14 @@ process_mkdir(u_int32_t id)
+ 	    (r = decode_attrib(iqueue, &a)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if (RETURN_OK != path_permition_check(name,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(name);
++
++		return;
++	}
++
+ 	mode = (a.flags & SSH2_FILEXFER_ATTR_PERMISSIONS) ?
+ 	    a.perm & 07777 : 0777;
+ 	debug3("request %u: mkdir", id);
+@@ -1145,6 +1716,14 @@ process_rmdir(u_int32_t id)
+ 	if ((r = sshbuf_get_cstring(iqueue, &name, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if (RETURN_OK != path_permition_check(name,FLAG_PROTECTDIR))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(name);
++
++		return;
++	}
++
+ 	debug3("request %u: rmdir", id);
+ 	logit("rmdir name \"%s\"", name);
+ 	r = rmdir(name);
+@@ -1169,8 +1748,12 @@ process_realpath(u_int32_t id)
+ 	}
+ 	debug3("request %u: realpath", id);
+ 	verbose("realpath \"%s\"", path);
+-	if (realpath(path, resolvedname) == NULL) {
+-		send_status(id, errno_to_portable(errno));
++	if ((realpath(path, resolvedname) == NULL)
++		|| (RETURN_OK != path_permition_check(resolvedname,FLAG_PERMITOP))) {
++		if (storage_flag != 1)
++			send_status(id, errno_to_portable(errno));
++		else
++			send_status(id, SSH2_FX_PERMISSION_DENIED);
+ 	} else {
+ 		Stat s;
+ 		attrib_clear(&s.attrib);
+@@ -1191,6 +1774,16 @@ process_rename(u_int32_t id)
+ 	    (r = sshbuf_get_cstring(iqueue, &newpath, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if ((RETURN_OK != path_permition_check(oldpath,FLAG_PROTECTDIR))
++		|| (RETURN_OK != path_permition_check(newpath,FLAG_PROTECTDIR)))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(oldpath);
++		free(newpath);
++
++		return;
++	}
++
+ 	debug3("request %u: rename", id);
+ 	logit("rename old \"%s\" new \"%s\"", oldpath, newpath);
+ 	status = SSH2_FX_FAILURE;
+@@ -1250,6 +1843,14 @@ process_readlink(u_int32_t id)
+ 	if ((r = sshbuf_get_cstring(iqueue, &path, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(path);
++
++		return;
++	}
++
+ 	debug3("request %u: readlink", id);
+ 	verbose("readlink \"%s\"", path);
+ 	if ((len = readlink(path, buf, sizeof(buf) - 1)) == -1)
+@@ -1275,6 +1876,16 @@ process_symlink(u_int32_t id)
+ 	    (r = sshbuf_get_cstring(iqueue, &newpath, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if ((RETURN_OK != path_permition_check(oldpath,FLAG_PROTECTDIR))
++		|| (RETURN_OK != path_permition_check(newpath,FLAG_PROTECTDIR)))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(oldpath);
++		free(newpath);
++
++		return;
++	}
++
+ 	debug3("request %u: symlink", id);
+ 	logit("symlink old \"%s\" new \"%s\"", oldpath, newpath);
+ 	/* this will fail if 'newpath' exists */
+@@ -1295,6 +1906,16 @@ process_extended_posix_rename(u_int32_t id)
+ 	    (r = sshbuf_get_cstring(iqueue, &newpath, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if ((RETURN_OK != path_permition_check(oldpath,FLAG_PROTECTDIR))
++		|| (RETURN_OK != path_permition_check(newpath,FLAG_PROTECTDIR)))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(oldpath);
++		free(newpath);
++
++		return;
++	}
++
+ 	debug3("request %u: posix-rename", id);
+ 	logit("posix-rename old \"%s\" new \"%s\"", oldpath, newpath);
+ 	r = rename(oldpath, newpath);
+@@ -1313,6 +1934,15 @@ process_extended_statvfs(u_int32_t id)
+ 
+ 	if ((r = sshbuf_get_cstring(iqueue, &path, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
++
++	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(path);
++
++		return;
++	}
++
+ 	debug3("request %u: statvfs", id);
+ 	logit("statvfs \"%s\"", path);
+ 
+@@ -1331,6 +1961,17 @@ process_extended_fstatvfs(u_int32_t id)
+ 
+ 	if ((r = get_handle(iqueue, &handle)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
++
++	char *path = NULL;
++	path = handle_to_name(handle);
++	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(path);
++
++		return;
++	}
++
+ 	debug("request %u: fstatvfs \"%s\" (handle %u)",
+ 	    id, handle_to_name(handle), handle);
+ 	if ((fd = handle_to_fd(handle)) < 0) {
+@@ -1353,6 +1994,15 @@ process_extended_hardlink(u_int32_t id)
+ 	    (r = sshbuf_get_cstring(iqueue, &newpath, NULL)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
+ 
++	if ((RETURN_OK != path_permition_check(oldpath,FLAG_PROTECTDIR))
++		|| (RETURN_OK != path_permition_check(newpath,FLAG_PROTECTDIR)))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(oldpath);
++		free(newpath);
++		return;
++	}
++
+ 	debug3("request %u: hardlink", id);
+ 	logit("hardlink old \"%s\" new \"%s\"", oldpath, newpath);
+ 	r = link(oldpath, newpath);
+@@ -1369,6 +2019,17 @@ process_extended_fsync(u_int32_t id)
+ 
+ 	if ((r = get_handle(iqueue, &handle)) != 0)
+ 		fatal("%s: buffer error: %s", __func__, ssh_err(r));
++
++	char *path = NULL;
++	path = handle_to_name(handle);
++	if (RETURN_OK != path_permition_check(path,FLAG_PERMITOP))
++	{
++		send_status(id, SSH2_FX_PERMISSION_DENIED);
++		free(path);
++
++		return;
++	}
++
+ 	debug3("request %u: fsync (handle %u)", id, handle);
+ 	verbose("fsync \"%s\"", handle_to_name(handle));
+ 	if ((fd = handle_to_fd(handle)) < 0)
+@@ -1606,6 +2267,22 @@ sftp_server_main(int argc, char **argv, struct passwd *user_pw, int reset_handle
+ 
+ 	log_init_handler(__progname, log_level, log_facility, log_stderr, reset_handler);
+ 
++	read_config_file(pszPermitPath, szPermitPath);
++	read_config_file(pszDenyPath, szDenyPath);
++	read_config_file(pszPermitPath_other, szPermitPath_other);
++	read_config_file(pszDenyPath_other, szDenyPath_other);
++
++	if (storage_flag == 1)
++	{
++		initialize_check_options(&ckoptions);
++		debug("Parse config file: %s", ck_config_file_name);
++		if(!ck_parse_server_config(ck_config_file_name))
++		{
++			error("Failed to parse config file: %s!", ck_config_file_name);
++			sftp_server_cleanup_exit(1);
++		}
++	}
++
+ 	/*
+ 	 * On platforms where we can, avoid making /proc/self/{mem,maps}
+ 	 * available to the user so that sftp access doesn't automatically
+-- 
+1.8.3.1
