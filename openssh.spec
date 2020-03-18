@@ -10,7 +10,7 @@
 
 Name:          openssh
 Version:       7.8p1
-Release:       7
+Release:       8
 URL:           https://www.openssh.com/portable.html
 License:       BSD
 Summary:       An open source implementation of SSH protocol version 2
@@ -131,6 +131,7 @@ Patch9006:     bugfix-openssh-add-option-check-username-splash.patch
 Patch9007:     feature-openssh-7.4-hima-sftpserver-oom-and-fix.patch
 Patch9008:     bugfix-supply-callback-to-PEM-read-bio-PrivateKey.patch
 Patch9009:     bugfix-openssh-fix-sftpserver.patch
+Patch9010:     bugfix-CVE-2018-15919.patch
 
 Requires:      /sbin/nologin libselinux >= 2.3-5 audit-libs >= 1.0.8
 Requires:      fipscheck-lib >= 1.3.0 
@@ -139,8 +140,6 @@ Requires(pre): shadow-utils
 Requires:      pam >= 1.0.1-3
 Requires:      fipscheck-lib >= 1.3.0
 Requires:      crypto-policies >= 20180306-1
-
-
 
 Obsoletes:     openssh-clients-fips openssh-server-fips openssh-server-sysvinit openssh-cavs openssh-askpass-gnome
 Obsoletes:     openssh-clients openssh-server openssh-ldap openssh-keycat openssh-askpass 
@@ -277,6 +276,7 @@ popd
 %patch9009 -p1
 
 %patch6030 -p1
+%patch9010 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-0.10.3
@@ -463,6 +463,9 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Wed Mar 18 2020 songnannan <songnannan2@huawei.com> - 7.8P1-8
+- bugfix CVE-2018-15919
+
 * Tue Jan 21 2020 openEuler Buildteam <buildteam@openeuler.org> - 7.8P1-7
 - Type:bugfix
 - ID:NA
