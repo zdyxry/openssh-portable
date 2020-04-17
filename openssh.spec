@@ -155,7 +155,7 @@ BuildRequires: libedit-devel ncurses-devel libselinux-devel >= 2.3-5 audit-libs 
 Recommends:    p11-kit
 
 %description
-penSSH is the premier connectivity tool for remote login with the SSH protocol. \
+OpenSSH is the premier connectivity tool for remote login with the SSH protocol. \
 It encrypts all traffic to eliminate eavesdropping, connection hijacking, and \
 other attacks. In addition, OpenSSH provides a large suite of secure tunneling \
 capabilities, several authentication methods, and sophisticated configuration options.
