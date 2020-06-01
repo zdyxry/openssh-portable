@@ -319,7 +319,10 @@ fi
 	--enable-vendor-patchlevel="FC-7.8p1-3" \
 	--without-zlib-version-check --with-ssl-engine --with-ipaddr-display \
 	--with-pie=no --without-hardening --with-systemd --with-default-pkcs11-provider=yes \
-	--with-ldap --with-pam --with-selinux --with-audit=linux --with-sandbox=seccomp_filter \
+	--with-ldap --with-pam --with-selinux --with-audit=linux \
+%ifnarch riscv64
+	 --with-sandbox=seccomp_filter \
+%endif 
 	--with-kerberos5${krb5_prefix:+=${krb5_prefix}} --with-libedit
 
 make
