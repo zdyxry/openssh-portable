@@ -7,8 +7,9 @@ Wants=sshd-keygen.target
 [Service]
 Type=notify
 EnvironmentFile=-/etc/crypto-policies/back-ends/opensshserver.config
+EnvironmentFile=-/etc/sysconfig/sshd-permitrootlogin
 EnvironmentFile=-/etc/sysconfig/sshd
-ExecStart=/usr/sbin/sshd -D $OPTIONS $CRYPTO_POLICY
+ExecStart=/usr/sbin/sshd -D $OPTIONS $CRYPTO_POLICY $PERMITROOTLOGIN
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 Restart=on-failure

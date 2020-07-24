@@ -1,6 +1,6 @@
 diff -up openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c
 --- openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c	2018-08-24 10:22:56.281930322 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c	2020-02-07 10:43:05.011757956 +0100
 @@ -27,6 +27,7 @@
   * or implied, of Jamie Beverly.
   */
@@ -34,7 +34,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c.psaa-compat openss
  
 diff -up openssh/pam_ssh_agent_auth-0.10.3/identity.h.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/identity.h
 --- openssh/pam_ssh_agent_auth-0.10.3/identity.h.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/identity.h	2018-08-24 10:18:05.009393312 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/identity.h	2020-02-07 10:43:05.011757956 +0100
 @@ -30,8 +30,8 @@
  #include "openbsd-compat/sys-queue.h"
  #include "xmalloc.h"
@@ -56,8 +56,8 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/identity.h.psaa-compat openssh/pam_ss
      int tried;
      int isprivate;      /* key points to the private key */
 diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c
---- openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat	2018-08-24 10:18:05.007393297 +0200
-+++ openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c	2018-08-24 10:18:32.937612513 +0200
+--- openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat	2020-02-07 10:43:05.009757925 +0100
++++ openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c	2020-02-07 10:43:05.012757972 +0100
 @@ -36,8 +36,8 @@
  #include "openbsd-compat/sys-queue.h"
  #include "xmalloc.h"
@@ -119,7 +119,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
                                  const char * ruser, const char * servicename)
  {
      u_char *cookie = NULL;
-@@ -114,22 +116,23 @@ pamsshagentauth_session_id2_gen(Buffer *
+@@ -114,22 +120,23 @@ pamsshagentauth_session_id2_gen(Buffer *
      char ** reported_argv = NULL;
      size_t count = 0;
      char * action_logbuf = NULL;
@@ -147,13 +147,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
          }
          cookie[i] = (u_char) rnd;
          rnd >>= 8;
-@@ -139,12 +141,13 @@ pamsshagentauth_session_id2_gen(Buffer *
-     if (count > 0) { 
-         free_logbuf = 1;
-         action_logbuf = log_action(reported_argv, count);
--        agent_action(&action_agentbuf, reported_argv, count);
-+        agent_action(&action_agentbuf, reported_argv, count);
-         pamsshagentauth_free_command_line(reported_argv, count);
+@@ -144,7 +151,8 @@ pamsshagentauth_session_id2_gen(Buffer *
      }
      else {
          action_logbuf = "unknown on this platform";
@@ -163,7 +157,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
      }
      
      /*
-@@ -161,35 +163,39 @@ pamsshagentauth_session_id2_gen(Buffer *
+@@ -161,35 +169,39 @@ pamsshagentauth_session_id2_gen(Buffer *
      retc = getcwd(pwd, sizeof(pwd) - 1);
      time(&ts);
  
@@ -207,6 +201,14 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
 -        pamsshagentauth_buffer_free(&action_agentbuf);
 +        free(action_logbuf);
 +        sshbuf_free(action_agentbuf);
++    }
++    /* debug3("hostname: %s", hostname); */
++    if (reti >= 0) {
++        if ((r = sshbuf_put_cstring(*session_id2, hostname)) != 0)
++            fatal("%s: buffer error: %s", __func__, ssh_err(r));
++    } else {
++        if ((r = sshbuf_put_cstring(*session_id2, "")) != 0)
++            fatal("%s: buffer error: %s", __func__, ssh_err(r));
      }
 -    /* pamsshagentauth_debug3("hostname: %s", hostname); */
 -    if(reti >= 0)
@@ -215,21 +217,13 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
 -        pamsshagentauth_buffer_put_cstring(session_id2, "");
 -    /* pamsshagentauth_debug3("ts: %ld", ts); */
 -    pamsshagentauth_buffer_put_int64(session_id2, (uint64_t) ts);
-+    /* debug3("hostname: %s", hostname); */
-+    if (reti >= 0) {
-+        if ((r = sshbuf_put_cstring(*session_id2, hostname)) != 0)
-+            fatal("%s: buffer error: %s", __func__, ssh_err(r));
-+    } else {
-+        if ((r = sshbuf_put_cstring(*session_id2, "")) != 0)
-+            fatal("%s: buffer error: %s", __func__, ssh_err(r));
-+    }
 +    /* debug3("ts: %ld", ts); */
 +    if ((r = sshbuf_put_u64(*session_id2, (uint64_t) ts)) != 0)
 +        fatal("%s: buffer error: %s", __func__, ssh_err(r));
  
      free(cookie);
      return;
-@@ -278,7 +280,8 @@ ssh_get_authentication_connection_for_ui
+@@ -278,7 +290,8 @@ ssh_get_authentication_connection_for_ui
  
  	auth = xmalloc(sizeof(*auth));
  	auth->fd = sock;
@@ -239,7 +233,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
  	auth->howmany = 0;
  
  	return auth;
-@@ -287,43 +289,42 @@ ssh_get_authentication_connection_for_ui
+@@ -287,9 +300,9 @@ ssh_get_authentication_connection_for_ui
  int
  pamsshagentauth_find_authorized_keys(const char * user, const char * ruser, const char * servicename)
  {
@@ -251,11 +245,8 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
      AuthenticationConnection *ac;
      char *comment;
      uint8_t retval = 0;
-     uid_t uid = getpwnam(ruser)->pw_uid;
- 
-     OpenSSL_add_all_digests();
--    pamsshagentauth_session_id2_gen(&session_id2, user, ruser, servicename);
-+    pamsshagentauth_session_id2_gen(&session_id2, user, ruser, servicename);
+@@ -299,31 +312,30 @@ pamsshagentauth_find_authorized_keys(con
+     pamsshagentauth_session_id2_gen(&session_id2, user, ruser, servicename);
  
      if ((ac = ssh_get_authentication_connection_for_uid(uid))) {
 -        pamsshagentauth_verbose("Contacted ssh-agent of user %s (%u)", ruser, uid);
@@ -295,8 +286,8 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
      return retval;
  }
 diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c
---- openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat	2018-08-24 10:18:05.008393305 +0200
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c	2018-08-24 10:18:05.009393312 +0200
+--- openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat	2020-02-07 10:43:05.010757940 +0100
++++ openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c	2020-02-07 10:43:05.012757972 +0100
 @@ -104,7 +104,7 @@ pam_sm_authenticate(pam_handle_t * pamh,
   * a patch 8-)
   */
@@ -386,7 +377,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat open
  cleanexit:
 diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c
 --- openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c	2018-08-24 10:18:05.009393312 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c	2020-02-07 10:43:05.012757972 +0100
 @@ -66,8 +66,8 @@
  #include "xmalloc.h"
  #include "match.h"
@@ -453,7 +444,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c.psaa-compa
          pamsshagentauth_user_key_allowed2(getpwuid(authorized_keys_file_allowed_owner_uid),
 diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h
 --- openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h	2018-08-24 10:18:05.010393320 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h	2020-02-07 10:43:05.012757972 +0100
 @@ -32,7 +32,7 @@
  #define _PAM_USER_KEY_ALLOWED_H
  
@@ -465,7 +456,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h.psaa-compa
  #endif
 diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c
 --- openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c	2018-08-24 10:18:05.010393320 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c	2020-02-07 10:43:05.012757972 +0100
 @@ -45,44 +45,46 @@
  #include "xmalloc.h"
  #include "ssh.h"
@@ -742,7 +733,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c.psaa-compat o
  }
 diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h
 --- openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h	2018-08-24 10:18:05.010393320 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h	2020-02-07 10:43:05.012757972 +0100
 @@ -32,7 +32,7 @@
  #define _PAM_USER_KEY_ALLOWED_H
  
@@ -755,7 +746,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h.psaa-compat o
  #endif
 diff -up openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c
 --- openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c	2018-08-24 10:18:05.010393320 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c	2020-02-07 10:43:05.012757972 +0100
 @@ -53,8 +53,8 @@
  #include "xmalloc.h"
  #include "match.h"
@@ -799,7 +790,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c.psaa-compat openssh
  		}
 diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c
 --- openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c	2018-08-24 10:22:13.202657025 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c	2020-02-07 10:43:23.520048960 +0100
 @@ -37,10 +37,11 @@
  #include "xmalloc.h"
  #include "ssh.h"
@@ -814,7 +805,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat
  #include "pathnames.h"
  #include "misc.h"
  #include "secure_filename.h"
-@@ -48,54 +48,59 @@
+@@ -48,54 +49,59 @@
  #include "identity.h"
  #include "pam_user_authorized_keys.h"
  
@@ -833,8 +824,8 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat
      char           *pkalg = NULL;
      u_char         *pkblob = NULL, *sig = NULL;
 -    u_int           blen = 0, slen = 0;
-+    size_t          blen = 0, slen = 0;
 -    int             authenticated = 0;
++    size_t          blen = 0, slen = 0;
 +    int             r, authenticated = 0;
  
 -    pkalg = (char *) key_ssh_name(id->key);
@@ -879,7 +870,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat
  
      /* test for correct signature */
 -    if(pamsshagentauth_key_verify(id->key, sig, slen, pamsshagentauth_buffer_ptr(&b), pamsshagentauth_buffer_len(&b)) == 1)
-+    if (sshkey_verify(id->key, sig, slen, sshbuf_ptr(b), sshbuf_len(b), NULL, 0) == 0)
++    if (sshkey_verify(id->key, sig, slen, sshbuf_ptr(b), sshbuf_len(b), NULL, 0, NULL) == 0)
          authenticated = 1;
  
    user_auth_clean_exit:
@@ -898,7 +889,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat
  }
 diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h
 --- openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h	2018-08-24 10:18:05.010393320 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h	2020-02-07 10:43:05.013757988 +0100
 @@ -31,7 +31,7 @@
  #ifndef _USERAUTH_PUBKEY_FROM_ID_H
  #define _USERAUTH_PUBKEY_FROM_ID_H
@@ -911,7 +902,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h.psaa-compat
  #endif
 diff -up openssh/pam_ssh_agent_auth-0.10.3/uuencode.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/uuencode.c
 --- openssh/pam_ssh_agent_auth-0.10.3/uuencode.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/uuencode.c	2018-08-24 10:18:05.010393320 +0200
++++ openssh/pam_ssh_agent_auth-0.10.3/uuencode.c	2020-02-07 10:43:05.013757988 +0100
 @@ -56,7 +56,7 @@ pamsshagentauth_uudecode(const char *src
  	/* and remove trailing whitespace because __b64_pton needs this */
  	*p = '\0';

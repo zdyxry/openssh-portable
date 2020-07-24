@@ -1,6 +1,6 @@
-From 45b9c4762614db5bc14b855ccfc019951eebe42d Mon Sep 17 00:00:00 2001
+From 31883f21eff4265b68bb36f67b254adb524db6ae Mon Sep 17 00:00:00 2001
 From: guoxiaoqi <guoxiaoqi2@huawei.com>
-Date: Mon, 10 Dec 2018 19:07:51 +0000
+Date: Thu, 16 Apr 2020 14:51:44 +0800
 Subject: [PATCH] bugfix-openssh-6.6p1-log-usepam-no
 
 ---
@@ -9,12 +9,12 @@ Subject: [PATCH] bugfix-openssh-6.6p1-log-usepam-no
  2 files changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/sshd.c b/sshd.c
-index d6ac3e3..6f273b7 100644
+index c6c03ae..c291a5e 100644
 --- a/sshd.c
 +++ b/sshd.c
-@@ -1707,9 +1707,9 @@ main(int ac, char **av)
+@@ -1812,9 +1812,9 @@ main(int ac, char **av)
  	parse_server_config(&options, rexeced_flag ? "rexec" : config_file_name,
- 	    cfg, NULL);
+ 	    cfg, &includes, NULL);
  
 -	/* 'UsePAM no' is not supported in Fedora */
 +	/* 'UsePAM no' is not supported in openEuler */
@@ -22,21 +22,21 @@ index d6ac3e3..6f273b7 100644
 -		logit("WARNING: 'UsePAM no' is not supported in Fedora and may cause several problems.");
 +		logit("WARNING: 'UsePAM no' is not supported in openEuler and may cause several problems.");
  
- 	seed_rng();
- 
+ 	/* Fill in default values for those options not explicitly set. */
+ 	fill_default_server_options(&options);
 diff --git a/sshd_config b/sshd_config
-index cc90a90..17b477c 100644
+index e125992..ebc28b3 100644
 --- a/sshd_config
 +++ b/sshd_config
-@@ -91,7 +91,7 @@ GSSAPICleanupCredentials no
+@@ -87,7 +87,7 @@ AuthorizedKeysFile	.ssh/authorized_keys
  # If you just want the PAM account and session checks to run without
  # PAM authentication, then enable this but set PasswordAuthentication
  # and ChallengeResponseAuthentication to 'no'.
 -# WARNING: 'UsePAM no' is not supported in Fedora and may cause several
 +# WARNING: 'UsePAM no' is not supported in openEuler and may cause several
  # problems.
- UsePAM yes
+ #UsePAM no
  
 -- 
-1.8.3.1
+2.23.0
 

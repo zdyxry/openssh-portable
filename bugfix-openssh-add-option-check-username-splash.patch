@@ -1,6 +1,6 @@
-From a28e7321bbb42cf6e8734a297c07dd9467662151 Mon Sep 17 00:00:00 2001
+From 74c1a37dfeab8e9cc39e5bc76891d1d9d66b7638 Mon Sep 17 00:00:00 2001
 From: wangqiang <wangqiang62@huawei.com>
-Date: Thu, 9 Aug 2018 14:27:55 +0800
+Date: Thu, 16 Apr 2020 15:58:30 +0800
 Subject: [PATCH] openssh: add option check username splash
 
 add a check to inhibit username contains splash
@@ -8,17 +8,17 @@ add an option 'CheckUserSplash' so that user can turn off
 this check
 
 ---
- auth2.c     | 3 +++
+ auth2.c     | 4 +++-
  servconf.c  | 8 ++++++++
- servconf.h  | 2 ++
+ servconf.h  | 1 +
  sshd_config | 2 ++
- 4 files changed, 15 insertions(+)
+ 4 files changed, 14 insertions(+), 1 deletion(-)
 
 diff --git a/auth2.c b/auth2.c
-index 6591a8b..be7f829 100644
+index 4adc502..956b9cf 100644
 --- a/auth2.c
 +++ b/auth2.c
-@@ -231,10 +231,13 @@ input_userauth_request(int type, u_int32_t seq, void *ctxt)
+@@ -282,11 +282,13 @@ input_userauth_request(int type, u_int32_t seq, struct ssh *ssh)
  	debug("userauth-request for user %s service %s method %s", user, service, method);
  	debug("attempt %d failures %d", authctxt->attempt, authctxt->failures);
  
@@ -28,15 +28,16 @@ index 6591a8b..be7f829 100644
  	if ((role = strchr(user, '/')) != NULL)
  		*role++ = 0;
  #endif
+-
 +}
- 
  	if ((style = strchr(user, ':')) != NULL)
  		*style++ = 0;
+ 
 diff --git a/servconf.c b/servconf.c
-index 08e5d70..85c9238 100644
+index 7001d56..76147f9 100644
 --- a/servconf.c
 +++ b/servconf.c
-@@ -185,6 +185,7 @@
+@@ -195,6 +195,7 @@ initialize_server_options(ServerOptions *options)
  	options->ip_qos_interactive = -1;
  	options->ip_qos_bulk = -1;
  	options->version_addendum = NULL;
@@ -44,64 +45,66 @@ index 08e5d70..85c9238 100644
  	options->fingerprint_hash = -1;
  	options->disable_forwarding = -1;
  	options->expose_userauth_info = -1;
-@@ -425,6 +426,8 @@
+@@ -473,6 +474,8 @@ fill_default_server_options(ServerOptions *options)
+ 		options->ip_qos_bulk = IPTOS_DSCP_CS1;
+ 	if (options->version_addendum == NULL)
  		options->version_addendum = xstrdup("");
- 	if (options->show_patchlevel == -1)
- 		options->show_patchlevel = 0;
 +	if (options->check_user_splash == -1)
 +		options->check_user_splash = 1;
  	if (options->fwd_opts.streamlocal_bind_mask == (mode_t)-1)
  		options->fwd_opts.streamlocal_bind_mask = 0177;
  	if (options->fwd_opts.streamlocal_bind_unlink == -1)
-@@ -522,6 +525,7 @@
+@@ -574,6 +577,7 @@ typedef enum {
  	sStreamLocalBindMask, sStreamLocalBindUnlink,
  	sAllowStreamLocalForwarding, sFingerprintHash, sDisableForwarding,
- 	sExposeAuthInfo, sRDomain,
+ 	sExposeAuthInfo, sRDomain, sPubkeyAuthOptions, sSecurityKeyProvider,
 +	sCheckUserSplash,
  	sDeprecated, sIgnore, sUnsupported
  } ServerOpCodes;
  
-@@ -684,6 +688,7 @@
+@@ -740,6 +744,7 @@ static struct {
  	{ "fingerprinthash", sFingerprintHash, SSHCFG_GLOBAL },
  	{ "disableforwarding", sDisableForwarding, SSHCFG_ALL },
  	{ "exposeauthinfo", sExposeAuthInfo, SSHCFG_ALL },
 +	{ "checkusersplash", sCheckUserSplash, SSHCFG_GLOBAL },
  	{ "rdomain", sRDomain, SSHCFG_ALL },
- 	{ NULL, sBadOption, 0 }
- };
-@@ -1295,6 +1300,9 @@
+ 	{ "casignaturealgorithms", sCASignatureAlgorithms, SSHCFG_ALL },
+ 	{ "securitykeyprovider", sSecurityKeyProvider, SSHCFG_GLOBAL },
+@@ -1360,6 +1365,9 @@ process_server_config_line_depth(ServerOptions *options, char *line,
  	case sUsePAM:
  		intptr = &options->use_pam;
  		goto parse_flag;
 +	case sCheckUserSplash:
-+        	intptr = &options->check_user_splash;
-+		goto parse_flag;        
++		intptr = &options->check_user_splash;
++		goto parse_flag;
  
  	/* Standard Options */
  	case sBadOption:
 diff --git a/servconf.h b/servconf.h
-index 8318a74..be86374 100644
+index a3827e5..2c16b5a 100644
 --- a/servconf.h
 +++ b/servconf.h
-@@ -219,6 +219,8 @@
+@@ -226,6 +226,7 @@ typedef struct {
  	int	fingerprint_hash;
  	int	expose_userauth_info;
  	u_int64_t timing_secret;
-+
 +	int check_user_splash;      /* check whether splash exists in username, if exist, disable login */
+ 	char   *sk_provider;
  }       ServerOptions;
  
- /* Information about the incoming connection as used by Match */
 diff --git a/sshd_config b/sshd_config
-index 6bbb86b..cc90a90 100644
+index ebc28b3..b121450 100644
 --- a/sshd_config
 +++ b/sshd_config
-@@ -137,3 +137,5 @@ Subsystem	sftp	/usr/libexec/sftp-server
- #	AllowTcpForwarding no
+@@ -125,6 +125,8 @@ Subsystem	sftp	/usr/libexec/sftp-server
  #	PermitTTY no
  #	ForceCommand cvs server
-+
+ 
 +#CheckUserSplash yes
++
+ # To modify the system-wide ssh configuration, create a  *.conf  file under
+ #  /etc/ssh/sshd_config.d/  which will be automatically included below
+ Include /etc/ssh/sshd_config.d/*.conf
 -- 
-1.8.3.1
+2.23.0
 
