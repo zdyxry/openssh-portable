@@ -1,0 +1,104 @@
+From 8f2d1c4f30dd88e36ed4c9b5771c92c878378125 Mon Sep 17 00:00:00 2001
+From: m00525086 <majun65@huawei.com>
+Date: Thu, 16 Apr 2020 19:25:27 +0800
+Subject: [PATCH] sshd_config
+
+---
+ sshd_config | 28 ++++++++++++++++++----------
+ 1 file changed, 18 insertions(+), 10 deletions(-)
+
+diff --git a/sshd_config b/sshd_config
+index b121450..e8e6299 100644
+--- a/sshd_config
++++ b/sshd_config
+@@ -19,21 +19,22 @@
+ #ListenAddress 0.0.0.0
+ #ListenAddress ::
+ 
+-#HostKey /etc/ssh/ssh_host_rsa_key
+-#HostKey /etc/ssh/ssh_host_ecdsa_key
+-#HostKey /etc/ssh/ssh_host_ed25519_key
++HostKey /etc/ssh/ssh_host_rsa_key
++HostKey /etc/ssh/ssh_host_ecdsa_key
++HostKey /etc/ssh/ssh_host_ed25519_key
+ 
+ # Ciphers and keying
+ #RekeyLimit default none
+ 
+ # Logging
+ #SyslogFacility AUTH
++SyslogFacility AUTHPRIV
+ #LogLevel INFO
+ 
+ # Authentication:
+ 
+ #LoginGraceTime 2m
+-#PermitRootLogin prohibit-password
++PermitRootLogin yes
+ #StrictModes yes
+ #MaxAuthTries 6
+ #MaxSessions 10
+@@ -60,9 +61,11 @@ AuthorizedKeysFile	.ssh/authorized_keys
+ # To disable tunneled clear text passwords, change to no here!
+ #PasswordAuthentication yes
+ #PermitEmptyPasswords no
++PasswordAuthentication yes
+ 
+ # Change to no to disable s/key passwords
+ #ChallengeResponseAuthentication yes
++ChallengeResponseAuthentication no
+ 
+ # Kerberos options
+ #KerberosAuthentication no
+@@ -72,8 +75,8 @@ AuthorizedKeysFile	.ssh/authorized_keys
+ #KerberosUseKuserok yes
+ 
+ # GSSAPI options
+-#GSSAPIAuthentication no
+-#GSSAPICleanupCredentials yes
++GSSAPIAuthentication yes
++GSSAPICleanupCredentials no
+ #GSSAPIStrictAcceptorCheck yes
+ #GSSAPIKeyExchange no
+ #GSSAPIEnablek5users no
+@@ -89,16 +92,16 @@ AuthorizedKeysFile	.ssh/authorized_keys
+ # and ChallengeResponseAuthentication to 'no'.
+ # WARNING: 'UsePAM no' is not supported in openEuler and may cause several
+ # problems.
+-#UsePAM no
++UsePAM yes
+ 
+ #AllowAgentForwarding yes
+ #AllowTcpForwarding yes
+ #GatewayPorts no
+-#X11Forwarding no
++X11Forwarding yes
+ #X11DisplayOffset 10
+ #X11UseLocalhost yes
+ #PermitTTY yes
+-#PrintMotd yes
++PrintMotd no
+ #PrintLastLog yes
+ #TCPKeepAlive yes
+ #PermitUserEnvironment no
+@@ -115,6 +118,11 @@ AuthorizedKeysFile	.ssh/authorized_keys
+ # no default banner path
+ #Banner none
+ 
++AcceptEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
++AcceptEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
++AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE
++AcceptEnv XMODIFIERS
++
+ # override default of no subsystems
+ Subsystem	sftp	/usr/libexec/sftp-server
+ 
+@@ -129,4 +137,4 @@ Subsystem	sftp	/usr/libexec/sftp-server
+ 
+ # To modify the system-wide ssh configuration, create a  *.conf  file under
+ #  /etc/ssh/sshd_config.d/  which will be automatically included below
+-Include /etc/ssh/sshd_config.d/*.conf
++#Include /etc/ssh/sshd_config.d/*.conf
+-- 
+2.19.1
+

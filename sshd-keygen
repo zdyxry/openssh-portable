@@ -31,8 +31,8 @@ fi
 
 # sanitize permissions
 /usr/bin/chgrp ssh_keys $KEY
-/usr/bin/chmod 640 $KEY
-/usr/bin/chmod 644 $KEY.pub
+/usr/bin/chmod 400 $KEY
+/usr/bin/chmod 400 $KEY.pub
 if [[ -x /usr/sbin/restorecon ]]; then
 	/usr/sbin/restorecon $KEY{,.pub}
 fi

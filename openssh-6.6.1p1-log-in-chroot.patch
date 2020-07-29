@@ -46,7 +46,7 @@ diff -up openssh-7.4p1/monitor.c.log-in-chroot openssh-7.4p1/monitor.c
  
 +	pmonitor->m_state = "preauth";
 +
- 	authctxt = _authctxt;
+ 	authctxt = (Authctxt *)ssh->authctxt;
  	memset(authctxt, 0, sizeof(*authctxt));
  	ssh->authctxt = authctxt;
 @@ -405,6 +407,8 @@ monitor_child_postauth(struct monitor *p
@@ -56,8 +56,8 @@ diff -up openssh-7.4p1/monitor.c.log-in-chroot openssh-7.4p1/monitor.c
 +	pmonitor->m_state = "postauth";
 +
  	monitor_set_child_handler(pmonitor->m_pid);
- 	signal(SIGHUP, &monitor_child_handler);
- 	signal(SIGTERM, &monitor_child_handler);
+ 	ssh_signal(SIGHUP, &monitor_child_handler);
+ 	ssh_signal(SIGTERM, &monitor_child_handler);
 @@ -472,7 +476,7 @@ monitor_read_log(struct monitor *pmonito
  	if (log_level_name(level) == NULL)
  		fatal("%s: invalid log level %u (corrupted message?)",
@@ -113,7 +113,7 @@ diff -up openssh-7.4p1/monitor.h.log-in-chroot openssh-7.4p1/monitor.h
 +void monitor_reinit(struct monitor *, const char *);
  
  struct Authctxt;
- void monitor_child_preauth(struct Authctxt *, struct monitor *);
+ void monitor_child_preauth(struct ssh *, struct monitor *);
 diff -up openssh-7.4p1/session.c.log-in-chroot openssh-7.4p1/session.c
 --- openssh-7.4p1/session.c.log-in-chroot	2016-12-23 15:14:33.319168086 +0100
 +++ openssh-7.4p1/session.c	2016-12-23 15:18:18.742211853 +0100
@@ -210,8 +210,8 @@ diff -up openssh-7.4p1/sftp-server.c.log-in-chroot openssh-7.4p1/sftp-server.c
  	fd_set *rset, *wset;
  	int i, r, in, out, max, ch, skipargs = 0, log_stderr = 0;
 @@ -1511,7 +1511,7 @@ sftp_server_main(int argc, char **argv,
+ 	extern char *__progname;
  
- 	ssh_malloc_init();	/* must be called before any mallocs */
  	__progname = ssh_get_progname(argv[0]);
 -	log_init(__progname, log_level, log_facility, log_stderr);
 +	log_init_handler(__progname, log_level, log_facility, log_stderr, reset_handler);
