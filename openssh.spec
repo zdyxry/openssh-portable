@@ -9,7 +9,7 @@
 
 Name:           openssh
 Version:        8.2p1
-Release:        5
+Release:        6
 URL:            http://www.openssh.com/portable.html
 License:        BSD
 Summary:        An open source implementation of SSH protocol version 2
@@ -88,6 +88,7 @@ Patch56:        set-sshd-config.patch
 Patch57:        CVE-2020-12062-1.patch
 Patch58:        CVE-2020-12062-2.patch
 Patch59:        upstream-expose-vasnmprintf.patch
+Patch60:        CVE-2018-15919.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -249,6 +250,7 @@ popd
 %patch57 -p1
 %patch58 -p1
 %patch59 -p1
+%patch60 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-0.10.3
@@ -464,6 +466,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu Sep 15 2020 liulong<liulong20@huawei.com> - 8.2P1-6
+- Type:cves
+- ID:CVE-2018-15919
+- SUG:NA
+- DESC:Fix CVE-2018-15919
+
 * Thu Jul 2 2020 zhouyihang<zhouyihang3@huawei.com> - 8.2P1-5
 - Type:cves
 - ID:CVE-2020-12062
