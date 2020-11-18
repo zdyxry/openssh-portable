@@ -6,10 +6,11 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
+%global openssh_release 7
 
 Name:           openssh
 Version:        8.2p1
-Release:        6
+Release:        %{openssh_release}
 URL:            http://www.openssh.com/portable.html
 License:        BSD
 Summary:        An open source implementation of SSH protocol version 2
@@ -137,7 +138,7 @@ Requires:       openssh = %{version}-%{release}
 %package -n pam_ssh_agent_auth
 Summary:        PAM module for authentication with ssh-agent
 Version:        0.10.3
-Release:        9.1
+Release:        9.1.%{openssh_release}
 License:        BSD
 
 %description
@@ -466,6 +467,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Tue Nov 17 2020 gaihuiying<gaihuiying1@huawei.com> - 8.2P1-7
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:keep pam_ssh_agent_auth change release number with openssh
+
 * Thu Sep 15 2020 liulong<liulong20@huawei.com> - 8.2P1-6
 - Type:cves
 - ID:CVE-2018-15919
