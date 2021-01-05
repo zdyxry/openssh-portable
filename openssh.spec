@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 8
+%global openssh_release 9
 
 Name:           openssh
 Version:        8.2p1
@@ -90,6 +90,7 @@ Patch57:        CVE-2020-12062-1.patch
 Patch58:        CVE-2020-12062-2.patch
 Patch59:        upstream-expose-vasnmprintf.patch
 Patch60:        CVE-2018-15919.patch
+Patch61:        CVE-2020-14145.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -252,6 +253,7 @@ popd
 %patch58 -p1
 %patch59 -p1
 %patch60 -p1
+%patch61 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-0.10.3
@@ -467,6 +469,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Mon Jan 4 2021 chxssg<chxssg@qq.com> - 8.2P1-9
+- Type:cves
+- CVE:CVE-2020-14145
+- SUG:NA
+- DESC:fix CVE-2020-14145
+
 * Wed Nov 18 2020 gaihuiying<gaihuiying1@huawei.com> - 8.2P1-8
 - Type:bugfix
 - CVE:NA
