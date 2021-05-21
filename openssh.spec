@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 9
+%global openssh_release 10
 
 Name:           openssh
 Version:        8.2p1
@@ -91,6 +91,7 @@ Patch58:        CVE-2020-12062-2.patch
 Patch59:        upstream-expose-vasnmprintf.patch
 Patch60:        CVE-2018-15919.patch
 Patch61:        CVE-2020-14145.patch
+Patch62:        add-strict-scp-check-for-CVE-2020-15778.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -254,6 +255,7 @@ popd
 %patch59 -p1
 %patch60 -p1
 %patch61 -p1
+%patch62 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-0.10.3
@@ -469,6 +471,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu May 20 2021 seuzw<930zhaowei@163.com> - 8.2P1-10
+- Type:cves
+- CVE:CVE-2020-15778
+- SUG:NA
+- DESC:add strict-scp-check for CVE-2020-15778
+
 * Mon Jan 4 2021 chxssg<chxssg@qq.com> - 8.2P1-9
 - Type:cves
 - CVE:CVE-2020-14145
