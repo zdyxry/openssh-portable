@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 10
+%global openssh_release 11
 
 Name:           openssh
 Version:        8.2p1
@@ -456,7 +456,6 @@ getent passwd sshd >/dev/null || \
 %files -n pam_ssh_agent_auth
 %license pam_ssh_agent_auth-0.10.3/OPENSSH_LICENSE
 %attr(0755,root,root) %{_libdir}/security/pam_ssh_agent_auth.so
-%attr(0644,root,root) %{_mandir}/man8/pam_ssh_agent_auth.8*
 
 %files help
 %doc ChangeLog OVERVIEW PROTOCOL* README README.privsep README.tun README.dns TODO openssh-lpk-openldap.schema
@@ -471,6 +470,9 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Fri Jul 09 2021 panchenbo<panchenbo@uniontech.com> - 8.2P1-11
+- fix pam_ssh_agent_auth.8.gz conflicts
+
 * Thu May 20 2021 seuzw<930zhaowei@163.com> - 8.2P1-10
 - Type:cves
 - CVE:CVE-2020-15778
