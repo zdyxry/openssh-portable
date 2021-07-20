@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 11
+%global openssh_release 12
 
 Name:           openssh
 Version:        8.2p1
@@ -92,6 +92,7 @@ Patch59:        upstream-expose-vasnmprintf.patch
 Patch60:        CVE-2018-15919.patch
 Patch61:        CVE-2020-14145.patch
 Patch62:        add-strict-scp-check-for-CVE-2020-15778.patch
+Patch63:        backport-move-closefrom-to-before-first-malloc.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -256,6 +257,7 @@ popd
 %patch60 -p1
 %patch61 -p1
 %patch62 -p1
+%patch63 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-0.10.3
@@ -470,6 +472,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Tue Jul 20 2021 seuzw<930zhaowei@163.com> - 8.2P1-12
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:move classfrom to before first malloc
+
 * Fri Jul 09 2021 panchenbo<panchenbo@uniontech.com> - 8.2P1-11
 - fix pam_ssh_agent_auth.8.gz conflicts
 
