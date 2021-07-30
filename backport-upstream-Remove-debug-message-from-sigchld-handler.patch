@@ -1,0 +1,32 @@
+From a35d3e911e193a652bd09eed40907e3e165b0a7b Mon Sep 17 00:00:00 2001
+From: "dtucker@openbsd.org" <dtucker@openbsd.org>
+Date: Fri, 5 Feb 2021 02:20:23 +0000
+Subject: upstream: Remove debug message from sigchld handler. While this
+works on OpenBSD it can cause problems on other platforms. From kircherlike
+at outlook.com via bz#3259, ok djm@
+
+OpenBSD-Commit_ID: 3e241d7ac1ee77e3de3651780b5dc47b283a7668
+
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit/?id=a35d3e911e193a652bd09eed40907e3e165b0a7b
+
+---
+ sshd.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/sshd.c b/sshd.c
+index c291a5e..23fb202 100644
+--- a/sshd.c
++++ b/sshd.c
+@@ -364,8 +364,6 @@ main_sigchld_handler(int sig)
+ 	pid_t pid;
+ 	int status;
+ 
+-	debug("main_sigchld_handler: %s", strsignal(sig));
+-
+ 	while ((pid = waitpid(-1, &status, WNOHANG)) > 0 ||
+ 	    (pid == -1 && errno == EINTR))
+ 		;
+-- 
+1.8.3.1
+

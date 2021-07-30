@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 12
+%global openssh_release 13
 
 Name:           openssh
 Version:        8.2p1
@@ -93,6 +93,7 @@ Patch60:        CVE-2018-15919.patch
 Patch61:        CVE-2020-14145.patch
 Patch62:        add-strict-scp-check-for-CVE-2020-15778.patch
 Patch63:        backport-move-closefrom-to-before-first-malloc.patch
+Patch64:	backport-upstream-Remove-debug-message-from-sigchld-handler.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -258,6 +259,7 @@ popd
 %patch61 -p1
 %patch62 -p1
 %patch63 -p1
+%patch64 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-0.10.3
@@ -472,20 +474,26 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Fri Jul 30 2021 kircher<majun65@huawei.com> - 8.2P1-13
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:remove debug message from sigchld handler
+
 * Tue Jul 20 2021 seuzw<930zhaowei@163.com> - 8.2P1-12
 - Type:bugfix
 - CVE:NA
 - SUG:NA
-- DESC:move classfrom to before first malloc
+- DESC:move closefrom to before first malloc
 
 * Fri Jul 09 2021 panchenbo<panchenbo@uniontech.com> - 8.2P1-11
 - fix pam_ssh_agent_auth.8.gz conflicts
 
 * Thu May 20 2021 seuzw<930zhaowei@163.com> - 8.2P1-10
-- Type:cves
-- CVE:CVE-2020-15778
+- Type:bigfix
+- CVE:NA
 - SUG:NA
-- DESC:add strict-scp-check for CVE-2020-15778
+- DESC:add strict-scp-check for check command injection
 
 * Mon Jan 4 2021 chxssg<chxssg@qq.com> - 8.2P1-9
 - Type:cves
@@ -505,7 +513,7 @@ getent passwd sshd >/dev/null || \
 - SUG:NA
 - DESC:keep pam_ssh_agent_auth change release number with openssh
 
-* Thu Sep 15 2020 liulong<liulong20@huawei.com> - 8.2P1-6
+* Tue Sep 15 2020 liulong<liulong20@huawei.com> - 8.2P1-6
 - Type:cves
 - ID:CVE-2018-15919
 - SUG:NA
