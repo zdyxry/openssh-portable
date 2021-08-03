@@ -490,7 +490,7 @@ getent passwd sshd >/dev/null || \
 - fix pam_ssh_agent_auth.8.gz conflicts
 
 * Thu May 20 2021 seuzw<930zhaowei@163.com> - 8.2P1-10
-- Type:bigfix
+- Type:bugfix
 - CVE:NA
 - SUG:NA
 - DESC:add strict-scp-check for check command injection
