@@ -110,8 +110,8 @@ diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
  		options->x11_use_localhost = 1;
  	if (options->xauth_location == NULL)
 @@ -419,7 +422,7 @@ typedef enum {
- 	sPasswordAuthentication, sKbdInteractiveAuthentication,
- 	sListenAddress, sAddressFamily,
+ 	sPasswordAuthentication,
+ 	sKbdInteractiveAuthentication, sListenAddress, sAddressFamily,
  	sPrintMotd, sPrintLastLog, sIgnoreRhosts,
 -	sX11Forwarding, sX11DisplayOffset, sX11UseLocalhost,
 +	sX11Forwarding, sX11DisplayOffset, sX11MaxDisplays, sX11UseLocalhost,

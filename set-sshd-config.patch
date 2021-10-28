@@ -1,17 +1,26 @@
-From 8f2d1c4f30dd88e36ed4c9b5771c92c878378125 Mon Sep 17 00:00:00 2001
-From: kircher <majun65@huawei.com>
-Date: Thu, 16 Apr 2020 19:25:27 +0800
-Subject: [PATCH] sshd_config
+From ca0b2bcd17a2c0e1682b8125960ac81e08d0f6dd Mon Sep 17 00:00:00 2001
+From: kircher <kircherlike@outlook.com>
+Date: Wed, 27 Oct 2021 16:51:41 +0800
+Subject: [PATCH] set
 
 ---
- sshd_config | 28 ++++++++++++++++++----------
- 1 file changed, 18 insertions(+), 10 deletions(-)
+ sshd_config | 32 +++++++++++++++++++-------------
+ 1 file changed, 19 insertions(+), 13 deletions(-)
 
 diff --git a/sshd_config b/sshd_config
-index b121450..e8e6299 100644
+index 42ecf9b..67739b2 100644
 --- a/sshd_config
 +++ b/sshd_config
-@@ -19,21 +19,22 @@
+@@ -12,7 +12,7 @@
+ 
+ # To modify the system-wide sshd configuration, create a  *.conf  file under
+ #  /etc/ssh/sshd_config.d/  which will be automatically included below
+-Include /etc/ssh/sshd_config.d/*.conf
++#Include /etc/ssh/sshd_config.d/*.conf
+ 
+ # If you want to change the port on a SELinux system, you have to tell
+ # SELinux about this change.
+@@ -23,21 +23,22 @@ Include /etc/ssh/sshd_config.d/*.conf
  #ListenAddress 0.0.0.0
  #ListenAddress ::
  
@@ -38,19 +47,21 @@ index b121450..e8e6299 100644
  #StrictModes yes
  #MaxAuthTries 6
  #MaxSessions 10
-@@ -60,9 +61,11 @@ AuthorizedKeysFile	.ssh/authorized_keys
+@@ -62,11 +63,11 @@ AuthorizedKeysFile	.ssh/authorized_keys
+ #IgnoreRhosts yes
+ 
  # To disable tunneled clear text passwords, change to no here!
- #PasswordAuthentication yes
- #PermitEmptyPasswords no
+-#PasswordAuthentication yes
 +PasswordAuthentication yes
+ #PermitEmptyPasswords no
  
  # Change to no to disable s/key passwords
- #ChallengeResponseAuthentication yes
-+ChallengeResponseAuthentication no
+-#KbdInteractiveAuthentication yes
++KbdInteractiveAuthentication no
  
  # Kerberos options
  #KerberosAuthentication no
-@@ -72,8 +75,8 @@ AuthorizedKeysFile	.ssh/authorized_keys
+@@ -76,8 +77,8 @@ AuthorizedKeysFile	.ssh/authorized_keys
  #KerberosUseKuserok yes
  
  # GSSAPI options
@@ -61,8 +72,8 @@ index b121450..e8e6299 100644
  #GSSAPIStrictAcceptorCheck yes
  #GSSAPIKeyExchange no
  #GSSAPIEnablek5users no
-@@ -89,16 +92,16 @@ AuthorizedKeysFile	.ssh/authorized_keys
- # and ChallengeResponseAuthentication to 'no'.
+@@ -93,16 +94,16 @@ AuthorizedKeysFile	.ssh/authorized_keys
+ # and KbdInteractiveAuthentication to 'no'.
  # WARNING: 'UsePAM no' is not supported in openEuler and may cause several
  # problems.
 -#UsePAM no
@@ -81,7 +92,7 @@ index b121450..e8e6299 100644
  #PrintLastLog yes
  #TCPKeepAlive yes
  #PermitUserEnvironment no
-@@ -115,6 +118,11 @@ AuthorizedKeysFile	.ssh/authorized_keys
+@@ -119,8 +120,13 @@ AuthorizedKeysFile	.ssh/authorized_keys
  # no default banner path
  #Banner none
  
@@ -91,14 +102,11 @@ index b121450..e8e6299 100644
 +AcceptEnv XMODIFIERS
 +
  # override default of no subsystems
- Subsystem	sftp	/usr/libexec/sftp-server
+-Subsystem	sftp	/usr/libexec/sftp-server
++Subsystem	sftp	/usr/libexec/openssh/sftp-server
  
-@@ -129,4 +137,4 @@ Subsystem	sftp	/usr/libexec/sftp-server
- 
- # To modify the system-wide ssh configuration, create a  *.conf  file under
- #  /etc/ssh/sshd_config.d/  which will be automatically included below
--Include /etc/ssh/sshd_config.d/*.conf
-+#Include /etc/ssh/sshd_config.d/*.conf
+ # Example of overriding settings on a per-user basis
+ #Match User anoncvs
 -- 
-2.19.1
+1.8.3.1
 

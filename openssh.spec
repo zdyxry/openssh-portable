@@ -6,10 +6,10 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 15
+%global openssh_release 1
 
 Name:           openssh
-Version:        8.2p1
+Version:        8.8p1
 Release:        %{openssh_release}
 URL:            http://www.openssh.com/portable.html
 License:        BSD
@@ -18,7 +18,7 @@ Summary:        An open source implementation of SSH protocol version 2
 Source0:        https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-%{version}.tar.gz
 Source1:        https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-%{version}.tar.gz.asc
 Source2:        sshd.pam
-Source4:        http://prdownloads.sourceforge.net/pamsshagentauth/pam_ssh_agent_auth/pam_ssh_agent_auth-0.10.3.tar.bz2
+Source4:        http://prdownloads.sourceforge.net/pamsshagentauth/pam_ssh_agent_auth/pam_ssh_agent_auth-0.10.4.tar.gz
 Source5:        pam_ssh_agent-rmheaders
 Source6:        ssh-keycat.pam
 Source7:        sshd.sysconfig
@@ -27,8 +27,8 @@ Source10:       sshd.socket
 Source11:       sshd.service
 Source12:       sshd-keygen@.service
 Source13:       sshd-keygen
-Source14:       sshd.tmpfiles
 Source15:       sshd-keygen.target
+Source16:	ssh-agent.service
 Patch0:         openssh-6.7p1-coverity.patch
 Patch1:         openssh-7.6p1-audit.patch
 Patch2:         openssh-7.1p2-audit-race-condition.patch
@@ -40,7 +40,6 @@ Patch7:         pam_ssh_agent_auth-0.10.2-compat.patch
 Patch8:         pam_ssh_agent_auth-0.10.2-dereference.patch
 Patch9:         openssh-7.8p1-role-mls.patch
 Patch10:        openssh-6.6p1-privsep-selinux.patch
-Patch11:        openssh-6.7p1-ldap.patch
 Patch12:        openssh-6.6p1-keycat.patch
 Patch13:        openssh-6.6p1-allow-ip-opts.patch
 Patch14:        openssh-6.6p1-keyperm.patch
@@ -53,8 +52,6 @@ Patch20:        openssh-4.3p2-askpass-grab-info.patch
 Patch21:        openssh-7.7p1.patch
 Patch22:        openssh-7.8p1-UsePAM-warning.patch
 Patch23:        openssh-6.3p1-ctr-evp-fast.patch
-Patch24:        openssh-6.6p1-ctr-cavstest.patch
-Patch25:        openssh-6.7p1-kdf-cavs.patch
 Patch26:        openssh-8.0p1-gssapi-keyex.patch
 Patch27:        openssh-6.6p1-force_krb.patch
 Patch28:        openssh-6.6p1-GSSAPIEnablek5users.patch
@@ -74,36 +71,28 @@ Patch41:        openssh-7.6p1-cleanup-selinux.patch
 Patch42:        openssh-7.5p1-sandbox.patch
 Patch43:        openssh-8.0p1-pkcs11-uri.patch
 Patch44:        openssh-7.8p1-scp-ipv6.patch
-Patch45:        openssh-7.9p1-ssh-copy-id.patch
 Patch46:        openssh-8.0p1-crypto-policies.patch
 Patch47:        openssh-8.0p1-openssl-evp.patch
 Patch48:        openssh-8.0p1-openssl-kdf.patch
 Patch49:        openssh-8.2p1-visibility.patch
-Patch50:        bugfix-sftp-when-parse_user_host_path-empty-path-should-be-allowed.patch
-Patch51:        bugfix-openssh-6.6p1-log-usepam-no.patch
-Patch52:        bugfix-openssh-add-option-check-username-splash.patch
-Patch53:        feature-openssh-7.4-hima-sftpserver-oom-and-fix.patch
-Patch54:        bugfix-openssh-fix-sftpserver.patch
-Patch55:        bugfix-debug3-to-verbose-in-command.patch
-Patch56:        set-sshd-config.patch
-Patch57:        CVE-2020-12062-1.patch
-Patch58:        CVE-2020-12062-2.patch
-Patch59:        upstream-expose-vasnmprintf.patch
-Patch60:        CVE-2018-15919.patch
-Patch61:        CVE-2020-14145.patch
-Patch62:        add-strict-scp-check-for-CVE-2020-15778.patch
-Patch63:        backport-move-closefrom-to-before-first-malloc.patch
-Patch64:	backport-upstream-Remove-debug-message-from-sigchld-handler.patch
-Patch65:	backport-upstream-Refactor-private-key-parsing.-Eliminates-a-.patch
-Patch66:	backport-CVE-2021-41617-1.patch
-Patch67:	backport-CVE-2021-41617-2.patch
+Patch50:	openssh-8.2p1-x11-without-ipv6.patch
+Patch51:	openssh-8.0p1-keygen-strip-doseol.patch
+Patch52:	openssh-8.0p1-preserve-pam-errors.patch
+Patch53:	openssh-8.7p1-scp-kill-switch.patch
+
+Patch54:        bugfix-sftp-when-parse_user_host_path-empty-path-should-be-allowed.patch
+Patch55:        bugfix-openssh-6.6p1-log-usepam-no.patch
+Patch56:        bugfix-openssh-add-option-check-username-splash.patch
+Patch57:        feature-openssh-7.4-hima-sftpserver-oom-and-fix.patch
+Patch58:        bugfix-openssh-fix-sftpserver.patch
+Patch59:        set-sshd-config.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
 Requires:       openssh-server = %{version}-%{release}
 
 BuildRequires:  gtk2-devel libX11-devel openldap-devel autoconf automake perl-interpreter perl-generators
-BuildRequires:  zlib-devel audit-libs-devel >= 2.0.5 util-linux groff pam-devel fipscheck-devel >= 1.3.0
+BuildRequires:  zlib-devel audit-libs-devel >= 2.0.5 util-linux groff pam-devel
 BuildRequires:  openssl-devel >= 0.9.8j perl-podlators systemd-devel gcc p11-kit-devel krb5-devel
 BuildRequires:  libedit-devel ncurses-devel libselinux-devel >= 2.3-5 audit-libs >= 1.0.8 xauth gnupg2
 
@@ -112,7 +101,6 @@ Recommends:     p11-kit
 %package        clients
 Summary:        An open source SSH client applications
 Requires:       openssh = %{version}-%{release}
-Requires:       fipscheck-lib%{_isa} >= 1.3.0
 Requires:       crypto-policies >= 20180306-1
 
 %package        server
@@ -120,13 +108,8 @@ Summary:        An open source SSH server daemon
 Requires:       openssh = %{version}-%{release}
 Requires(pre):  shadow
 Requires:       pam >= 1.0.1-3
-Requires:       fipscheck-lib%{_isa} >= 1.3.0
 Requires:       crypto-policies >= 20180306-1
 %{?systemd_requires}
-
-%package        ldap
-Summary:        A LDAP support for open source SSH server daemon
-Requires:       openssh = %{version}-%{release}
 
 %package        keycat
 Summary:        A mls keycat backend for openssh
@@ -135,17 +118,11 @@ Requires:       openssh = %{version}-%{release}
 %package        askpass
 Summary:        A passphrase dialog for OpenSSH and X
 Requires:       openssh = %{version}-%{release}
-Obsoletes:      openssh-askpass-gnome
-Provides:       openssh-askpass-gnome
-
-%package        cavs
-Summary:        CAVS tests for FIPS validation
-Requires:       openssh = %{version}-%{release}
 
 %package -n pam_ssh_agent_auth
 Summary:        PAM module for authentication with ssh-agent
-Version:        0.10.3
-Release:        9.%{openssh_release}
+Version:        0.10.4
+Release:        4.%{openssh_release}
 License:        BSD
 
 %description
@@ -165,10 +142,6 @@ into and executing commands on a remote machine. This package contains
 the secure shell daemon (sshd). The sshd daemon allows SSH clients to
 securely connect to your SSH server.
 
-%description ldap
-OpenSSH LDAP backend is a way how to distribute the authorized tokens
-among the servers in the network.
-
 %description keycat
 OpenSSH mls keycat is backend for using the authorized keys in the
 openssh in the mls mode.
@@ -177,10 +150,6 @@ openssh in the mls mode.
 OpenSSH is a free version of SSH (Secure SHell), a program for logging
 into and executing commands on a remote machine. This package contains
 an X11 passphrase dialog for OpenSSH.
-
-%description cavs
-This package contains test binaries and scripts to make FIPS validation
-easier. Now contains CTR and KDF CAVS test driver.
 
 %description -n pam_ssh_agent_auth
 Provides PAM module for the use of authentication with ssh-agent. Through the use of the\
@@ -192,7 +161,7 @@ instance. The module is most useful for su and sudo service stacks.
 %prep
 %setup -q -a 4
 
-pushd pam_ssh_agent_auth-0.10.3
+pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
 %patch3 -p2 -b .psaa-build
 %patch4 -p2 -b .psaa-seteuid
 %patch5 -p2 -b .psaa-visibility
@@ -205,7 +174,6 @@ popd
 
 %patch9 -p1 -b .role-mls
 %patch10 -p1 -b .privsep-selinux
-%patch11 -p1 -b .ldap
 %patch12 -p1 -b .keycat
 %patch13 -p1 -b .ip-opts
 %patch14 -p1 -b .keyperm
@@ -217,8 +185,6 @@ popd
 %patch21 -p1
 %patch22 -p1 -b .log-usepam-no
 %patch23 -p1 -b .evp-ctr
-%patch24 -p1 -b .ctr-cavs
-%patch25 -p1 -b .kdf-cavs
 %patch26 -p1 -b .gsskex
 %patch27 -p1 -b .force_krb
 %patch29 -p1 -b .ccache_name
@@ -238,37 +204,28 @@ popd
 %patch42 -p1 -b .sandbox
 %patch43 -p1 -b .pkcs11-uri
 %patch44 -p1 -b .scp-ipv6
-%patch45 -p1 -b .ssh-copy-id
 %patch46 -p1 -b .crypto-policies
 %patch47 -p1 -b .openssl-evp
 %patch48 -p1 -b .openssl-kdf
 %patch49 -p1 -b .visibility
+%patch50 -p1 -b .x11-ipv6
+%patch51 -p1 -b .keygen-strip-doseol
+%patch52 -p1 -b .preserve-pam-errors
+%patch53 -p1 -b .kill-scp
 %patch1 -p1 -b .audit
 %patch2 -p1 -b .audit-race
 %patch18 -p1 -b .fips
 %patch0 -p1 -b .coverity
 
-%patch50 -p1
-%patch51 -p1
-%patch52 -p1
-%patch53 -p1
 %patch54 -p1
 %patch55 -p1
 %patch56 -p1
 %patch57 -p1
 %patch58 -p1
 %patch59 -p1
-%patch60 -p1
-%patch61 -p1
-%patch62 -p1
-%patch63 -p1
-%patch64 -p1
-%patch65 -p1
-%patch66 -p1
-%patch67 -p1
 
 autoreconf
-pushd pam_ssh_agent_auth-0.10.3
+pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
 autoreconf
 popd
 
@@ -308,7 +265,7 @@ fi
     --with-privsep-path=%{_var}/empty/sshd --disable-strip \
     --without-zlib-version-check --with-ssl-engine --with-ipaddr-display \
     --with-pie=no --without-hardening --with-systemd --with-default-pkcs11-provider=yes \
-    --with-ldap --with-pam --with-selinux --with-audit=linux \
+    --with-pam --with-selinux --with-audit=linux --with-security-key-buildin=yes \
 %ifnarch riscv64	
      --with-sandbox=seccomp_filter \
 %endif
@@ -329,17 +286,12 @@ else
 fi
 popd
 
-pushd pam_ssh_agent_auth-0.10.3
+pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
 LDFLAGS="$SAVE_LDFLAGS"
 %configure --with-selinux --libexecdir=/%{_libdir}/security --with-mantype=man \
     --without-openssl-header-check
 make
 popd
-
-%global __spec_install_post \
-    %%{?__debug_package:%%{__debug_install_post}} %%{__arch_install_post} %%{__os_install_post} \
-    fipshmac -d $RPM_BUILD_ROOT%{_libdir}/fipscheck $RPM_BUILD_ROOT%{_bindir}/ssh $RPM_BUILD_ROOT%{_sbindir}/sshd \
-%{nil}
 
 %check
 #to run tests use "--with check"
@@ -355,12 +307,9 @@ mkdir -p -m755 $RPM_BUILD_ROOT%{_var}/empty/sshd
 
 %make_install
 
-rm -f $RPM_BUILD_ROOT%{_sysconfdir}/ssh/ldap.conf
-
 install -d $RPM_BUILD_ROOT/etc/pam.d/
 install -d $RPM_BUILD_ROOT/etc/sysconfig/
 install -d $RPM_BUILD_ROOT%{_libexecdir}/openssh
-install -d $RPM_BUILD_ROOT%{_libdir}/fipscheck
 install -m644 %{SOURCE2} $RPM_BUILD_ROOT/etc/pam.d/sshd
 install -m644 %{SOURCE6} $RPM_BUILD_ROOT/etc/pam.d/ssh-keycat
 install -m644 %{SOURCE7} $RPM_BUILD_ROOT/etc/sysconfig/sshd
@@ -371,10 +320,11 @@ install -m644 %{SOURCE10} $RPM_BUILD_ROOT/%{_unitdir}/sshd.socket
 install -m644 %{SOURCE11} $RPM_BUILD_ROOT/%{_unitdir}/sshd.service
 install -m644 %{SOURCE12} $RPM_BUILD_ROOT/%{_unitdir}/sshd-keygen@.service
 install -m644 %{SOURCE15} $RPM_BUILD_ROOT/%{_unitdir}/sshd-keygen.target
+install -d -m755 $RPM_BUILD_ROOT/%{_userunitdir}
+install -m644 %{SOURCE16} $RPM_BUILD_ROOT/%{_userunitdir}/ssh-agent.service
 install -m744 %{SOURCE13} $RPM_BUILD_ROOT/%{_libexecdir}/openssh/sshd-keygen
 install -m755 contrib/ssh-copy-id $RPM_BUILD_ROOT%{_bindir}/
 install contrib/ssh-copy-id.1 $RPM_BUILD_ROOT%{_mandir}/man1/
-install -m644 -D %{SOURCE14} $RPM_BUILD_ROOT%{_tmpfilesdir}/%{name}.conf
 install contrib/gnome-ssh-askpass $RPM_BUILD_ROOT%{_libexecdir}/openssh/gnome-ssh-askpass
 
 ln -s gnome-ssh-askpass $RPM_BUILD_ROOT%{_libexecdir}/openssh/ssh-askpass
@@ -384,7 +334,7 @@ install -m 755 contrib/redhat/gnome-ssh-askpass.sh $RPM_BUILD_ROOT%{_sysconfdir}
 
 perl -pi -e "s|$RPM_BUILD_ROOT||g" $RPM_BUILD_ROOT%{_mandir}/man*/*
 
-pushd pam_ssh_agent_auth-0.10.3
+pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
 make install DESTDIR=$RPM_BUILD_ROOT
 popd
 
@@ -417,7 +367,6 @@ getent passwd sshd >/dev/null || \
 
 %files clients
 %attr(0755,root,root) %{_bindir}/ssh
-%attr(0644,root,root) %{_libdir}/fipscheck/ssh.hmac
 %attr(0755,root,root) %{_bindir}/scp
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/ssh/ssh_config
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/ssh/ssh_config.d/05-redhat.conf
@@ -428,11 +377,11 @@ getent passwd sshd >/dev/null || \
 %attr(0755,root,root) %{_bindir}/ssh-copy-id
 %attr(0755,root,root) %{_libexecdir}/openssh/ssh-pkcs11-helper
 %attr(0755,root,root) %{_libexecdir}/openssh/ssh-sk-helper
+%attr(0755,root,root) %{_userunitdir}/ssh-agent.service
 
 %files server
 %dir %attr(0711,root,root) %{_var}/empty/sshd
 %attr(0755,root,root) %{_sbindir}/sshd
-%attr(0644,root,root) %{_libdir}/fipscheck/sshd.hmac
 %attr(0755,root,root) %{_libexecdir}/openssh/sftp-server
 %attr(0755,root,root) %{_libexecdir}/openssh/sshd-keygen
 %attr(0600,root,root) %config(noreplace) %{_sysconfdir}/ssh/sshd_config
@@ -443,11 +392,6 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_unitdir}/sshd.socket
 %attr(0644,root,root) %{_unitdir}/sshd-keygen@.service
 %attr(0644,root,root) %{_unitdir}/sshd-keygen.target
-%attr(0644,root,root) %{_tmpfilesdir}/openssh.conf
-
-%files ldap
-%attr(0755,root,root) %{_libexecdir}/openssh/ssh-ldap-helper
-%attr(0755,root,root) %{_libexecdir}/openssh/ssh-ldap-wrapper
 
 %files keycat
 %attr(0755,root,root) %{_libexecdir}/openssh/ssh-keycat
@@ -458,18 +402,13 @@ getent passwd sshd >/dev/null || \
 %attr(0755,root,root) %{_libexecdir}/openssh/gnome-ssh-askpass
 %attr(0755,root,root) %{_libexecdir}/openssh/ssh-askpass
 
-%files cavs
-%attr(0755,root,root) %{_libexecdir}/openssh/ctr-cavstest
-%attr(0755,root,root) %{_libexecdir}/openssh/ssh-cavs
-%attr(0755,root,root) %{_libexecdir}/openssh/ssh-cavs_driver.pl
-
 %files -n pam_ssh_agent_auth
-%license pam_ssh_agent_auth-0.10.3/OPENSSH_LICENSE
+%license pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/OPENSSH_LICENSE
 %attr(0755,root,root) %{_libdir}/security/pam_ssh_agent_auth.so
 
 %files help
-%doc ChangeLog OVERVIEW PROTOCOL* README README.privsep README.tun README.dns TODO openssh-lpk-openldap.schema
-%doc openssh-lpk-sun.schema ldap.conf openssh-lpk-openldap.ldif openssh-lpk-sun.ldif HOWTO.ssh-keycat HOWTO.ldap-keys
+%doc ChangeLog OVERVIEW PROTOCOL* README README.privsep README.tun README.dns TODO
+%doc HOWTO.ssh-keycat
 %attr(0644,root,root) %{_mandir}/man1/scp.1*
 %attr(0644,root,root) %{_mandir}/man1/ssh*.1*
 %attr(0644,root,root) %{_mandir}/man1/sftp.1*
@@ -480,6 +419,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu Oct 28 2021 kircher<kircherlike@outlook.com> - 8.8P1-1
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:update to openssh-8.8p1
+
 * Fri Oct 8 2021 renmingshuai<renmingshuai@hauwei.com> - 8.2P1-15
 - Type:cves
 - CVE:CVE-2021-41617
