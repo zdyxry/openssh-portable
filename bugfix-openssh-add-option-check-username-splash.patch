@@ -97,14 +97,14 @@ index ebc28b3..b121450 100644
 --- a/sshd_config
 +++ b/sshd_config
 @@ -125,6 +125,8 @@ Subsystem	sftp	/usr/libexec/sftp-server
+ # Example of overriding settings on a per-user basis
+ #Match User anoncvs
+ #	X11Forwarding no
+ #	AllowTcpForwarding no
  #	PermitTTY no
  #	ForceCommand cvs server
- 
 +#CheckUserSplash yes
 +
- # To modify the system-wide ssh configuration, create a  *.conf  file under
- #  /etc/ssh/sshd_config.d/  which will be automatically included below
- Include /etc/ssh/sshd_config.d/*.conf
 -- 
 2.23.0
 

@@ -49,7 +49,7 @@ index a7c0c5f..df8cc9a 100644
 +	int ret = 0;
 +
 +	ret = ssh_krb5_get_k5login_directory(krb_context, &k5login_directory);
-+	debug3("%s: k5login_directory = %s (rv=%d)", __func__, k5login_directory, ret);
++	debug3_f("k5login_directory = %s (rv=%d)", k5login_directory, ret);
 +	if (k5login_directory == NULL || ret != 0) {
 +		/* If not set, the library will look for  k5login
 +		 * files in the user's home directory, with the filename  .k5login.
@@ -64,7 +64,7 @@ index a7c0c5f..df8cc9a 100644
 +			k5login_directory[strlen(k5login_directory)-1] != '/' ? "/" : "",
 +			pw->pw_name);
 +	}
-+	debug("%s: Checking existence of file %s", __func__, file);
++	debug_f("Checking existence of file %s", file);
  
 -	snprintf(file, sizeof(file), "%s/.k5login", pw->pw_dir);
  	return access(file, F_OK) == 0;

@@ -5,8 +5,6 @@ Wants=sshd-keygen.target
 After=sshd-keygen.target
 
 [Service]
-EnvironmentFile=-/etc/crypto-policies/back-ends/opensshserver.config
-EnvironmentFile=-/etc/sysconfig/sshd-permitrootlogin
 EnvironmentFile=-/etc/sysconfig/sshd
-ExecStart=-/usr/sbin/sshd -i $OPTIONS $CRYPTO_POLICY $PERMITROOTLOGIN
+ExecStart=-/usr/sbin/sshd -i $OPTIONS
 StandardInput=socket

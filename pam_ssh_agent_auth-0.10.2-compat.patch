@@ -1,6 +1,6 @@
-diff -up openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c
---- openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c	2020-02-07 10:43:05.011757956 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/get_command_line.c.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/get_command_line.c
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/get_command_line.c.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/get_command_line.c	2020-09-23 10:52:16.424001475 +0200
 @@ -27,6 +27,7 @@
   * or implied, of Jamie Beverly.
   */
@@ -9,7 +9,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c.psaa-compat openss
  #include <stdio.h>
  #include <errno.h>
  #include <string.h>
-@@ -65,8 +66,8 @@ proc_pid_cmdline(char *** inargv)
+@@ -66,8 +67,8 @@ proc_pid_cmdline(char *** inargv)
                  case EOF:
                  case '\0':
                      if (len > 0) { 
@@ -20,7 +20,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c.psaa-compat openss
                          strncpy(argv[count++], argbuf, len);
                          memset(argbuf, '\0', MAX_LEN_PER_CMDLINE_ARG + 1);
                          len = 0;
-@@ -105,9 +106,9 @@ pamsshagentauth_free_command_line(char *
+@@ -106,9 +107,9 @@ pamsshagentauth_free_command_line(char *
  {
      size_t i;
      for (i = 0; i < n_args; i++)
@@ -32,9 +32,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/get_command_line.c.psaa-compat openss
      return;
  }
  
-diff -up openssh/pam_ssh_agent_auth-0.10.3/identity.h.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/identity.h
---- openssh/pam_ssh_agent_auth-0.10.3/identity.h.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/identity.h	2020-02-07 10:43:05.011757956 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/identity.h.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/identity.h
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/identity.h.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/identity.h	2020-09-23 10:52:16.424001475 +0200
 @@ -30,8 +30,8 @@
  #include "openbsd-compat/sys-queue.h"
  #include "xmalloc.h"
@@ -55,9 +55,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/identity.h.psaa-compat openssh/pam_ss
      char    *filename;      /* comment for agent-only keys */
      int tried;
      int isprivate;      /* key points to the private key */
-diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c
---- openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat	2020-02-07 10:43:05.009757925 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c	2020-02-07 10:43:05.012757972 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/iterate_ssh_agent_keys.c.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/iterate_ssh_agent_keys.c
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/iterate_ssh_agent_keys.c.psaa-compat	2020-09-23 10:52:16.421001434 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/iterate_ssh_agent_keys.c	2020-09-23 10:52:16.424001475 +0200
 @@ -36,8 +36,8 @@
  #include "openbsd-compat/sys-queue.h"
  #include "xmalloc.h"
@@ -285,10 +285,10 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/iterate_ssh_agent_keys.c.psaa-compat 
      EVP_cleanup();
      return retval;
  }
-diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c
---- openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat	2020-02-07 10:43:05.010757940 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c	2020-02-07 10:43:05.012757972 +0100
-@@ -104,7 +104,7 @@ pam_sm_authenticate(pam_handle_t * pamh,
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_ssh_agent_auth.c.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_ssh_agent_auth.c
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_ssh_agent_auth.c.psaa-compat	2020-09-23 10:52:16.423001461 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_ssh_agent_auth.c	2020-09-23 10:53:10.631727657 +0200
+@@ -106,7 +106,7 @@ pam_sm_authenticate(pam_handle_t * pamh,
   * a patch 8-)
   */
  #if ! HAVE___PROGNAME || HAVE_BUNDLE
@@ -297,7 +297,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat open
  #endif
  
      for(i = argc, argv_ptr = (char **) argv; i > 0; ++argv_ptr, i--) {
-@@ -130,11 +130,11 @@ pam_sm_authenticate(pam_handle_t * pamh,
+@@ -132,11 +132,11 @@ pam_sm_authenticate(pam_handle_t * pamh,
  #endif
      }
  
@@ -311,7 +311,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat open
  
      if(ruser_ptr) {
          strncpy(ruser, ruser_ptr, sizeof(ruser) - 1);
-@@ -149,12 +149,12 @@ pam_sm_authenticate(pam_handle_t * pamh,
+@@ -151,12 +151,12 @@ pam_sm_authenticate(pam_handle_t * pamh,
  #ifdef ENABLE_SUDO_HACK
          if( (strlen(sudo_service_name) > 0) && strncasecmp(servicename, sudo_service_name, sizeof(sudo_service_name) - 1) == 0 && getenv("SUDO_USER") ) {
              strncpy(ruser, getenv("SUDO_USER"), sizeof(ruser) - 1 );
@@ -326,7 +326,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat open
                  goto cleanexit;
              }
              strncpy(ruser, getpwuid(getuid())->pw_name, sizeof(ruser) - 1);
-@@ -163,11 +163,11 @@ pam_sm_authenticate(pam_handle_t * pamh,
+@@ -165,11 +165,11 @@ pam_sm_authenticate(pam_handle_t * pamh,
  
      /* Might as well explicitely confirm the user exists here */
      if(! getpwnam(ruser) ) {
@@ -340,7 +340,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat open
          goto cleanexit;
      }
  
-@@ -177,8 +177,8 @@ pam_sm_authenticate(pam_handle_t * pamh,
+@@ -179,8 +179,8 @@ pam_sm_authenticate(pam_handle_t * pamh,
           */
          parse_authorized_key_file(user, authorized_keys_file_input);
      } else {
@@ -351,7 +351,7 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat open
      }
  
      /*
-@@ -187,19 +187,19 @@ pam_sm_authenticate(pam_handle_t * pamh,
+@@ -189,7 +189,7 @@ pam_sm_authenticate(pam_handle_t * pamh,
       */
  
      if(user && strlen(ruser) > 0) {
@@ -359,11 +359,26 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat open
 +        verbose("Attempting authentication: `%s' as `%s' using %s", ruser, user, authorized_keys_file);
  
          /*
+          * Attempt to read data from the sshd if we're being called as an auth agent.
+@@ -197,10 +197,10 @@ pam_sm_authenticate(pam_handle_t * pamh,
+         const char* ssh_user_auth = pam_getenv(pamh, "SSH_AUTH_INFO_0");
+         int sshd_service = strncasecmp(servicename, sshd_service_name, sizeof(sshd_service_name) - 1);
+         if (sshd_service == 0 && ssh_user_auth != NULL) {
+-            pamsshagentauth_verbose("Got SSH_AUTH_INFO_0: `%.20s...'", ssh_user_auth);
++            verbose("Got SSH_AUTH_INFO_0: `%.20s...'", ssh_user_auth);
+             if (userauth_pubkey_from_pam(ruser, ssh_user_auth) > 0) {
+                 retval = PAM_SUCCESS;
+-                pamsshagentauth_logit("Authenticated (sshd): `%s' as `%s' using %s", ruser, user, authorized_keys_file);
++                logit("Authenticated (sshd): `%s' as `%s' using %s", ruser, user, authorized_keys_file);
+                 goto cleanexit;
+             }
+         }
+@@ -208,13 +208,13 @@ pam_sm_authenticate(pam_handle_t * pamh,
           * this pw_uid is used to validate the SSH_AUTH_SOCK, and so must be the uid of the ruser invoking the program, not the target-user
           */
          if(pamsshagentauth_find_authorized_keys(user, ruser, servicename)) { /* getpwnam(ruser)->pw_uid)) { */
--            pamsshagentauth_logit("Authenticated: `%s' as `%s' using %s", ruser, user, authorized_keys_file);
-+            logit("Authenticated: `%s' as `%s' using %s", ruser, user, authorized_keys_file);
+-            pamsshagentauth_logit("Authenticated (agent): `%s' as `%s' using %s", ruser, user, authorized_keys_file);
++            logit("Authenticated (agent): `%s' as `%s' using %s", ruser, user, authorized_keys_file);
              retval = PAM_SUCCESS;
          } else {
 -            pamsshagentauth_logit("Failed Authentication: `%s' as `%s' using %s", ruser, user, authorized_keys_file);
@@ -375,9 +390,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_ssh_agent_auth.c.psaa-compat open
      }
  
  cleanexit:
-diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c
---- openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c	2020-02-07 10:43:05.012757972 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_authorized_keys.c.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_authorized_keys.c
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_authorized_keys.c.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_authorized_keys.c	2020-09-23 10:52:16.424001475 +0200
 @@ -66,8 +66,8 @@
  #include "xmalloc.h"
  #include "match.h"
@@ -442,9 +457,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.c.psaa-compa
  {
      return
          pamsshagentauth_user_key_allowed2(getpwuid(authorized_keys_file_allowed_owner_uid),
-diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h
---- openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h	2020-02-07 10:43:05.012757972 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_authorized_keys.h.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_authorized_keys.h
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_authorized_keys.h.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_authorized_keys.h	2020-09-23 10:52:16.424001475 +0200
 @@ -32,7 +32,7 @@
  #define _PAM_USER_KEY_ALLOWED_H
  
@@ -454,9 +469,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_authorized_keys.h.psaa-compa
  void parse_authorized_key_file(const char *, const char *);
  
  #endif
-diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c
---- openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c	2020-02-07 10:43:05.012757972 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_key_allowed2.c.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_key_allowed2.c
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_key_allowed2.c.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_key_allowed2.c	2020-09-23 10:52:16.424001475 +0200
 @@ -45,44 +45,46 @@
  #include "xmalloc.h"
  #include "ssh.h"
@@ -731,9 +746,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.c.psaa-compat o
 +    restore_uid();
      return found_key;
  }
-diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h
---- openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h	2020-02-07 10:43:05.012757972 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_key_allowed2.h.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_key_allowed2.h
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_key_allowed2.h.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/pam_user_key_allowed2.h	2020-09-23 10:52:16.424001475 +0200
 @@ -32,7 +32,7 @@
  #define _PAM_USER_KEY_ALLOWED_H
  
@@ -744,9 +759,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/pam_user_key_allowed2.h.psaa-compat o
 +int pamsshagentauth_user_key_command_allowed2(char *, char *, struct passwd *, struct sshkey *);
  
  #endif
-diff -up openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c
---- openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c	2020-02-07 10:43:05.012757972 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/secure_filename.c.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/secure_filename.c
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/secure_filename.c.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/secure_filename.c	2020-09-23 10:52:16.424001475 +0200
 @@ -53,8 +53,8 @@
  #include "xmalloc.h"
  #include "match.h"
@@ -788,9 +803,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/secure_filename.c.psaa-compat openssh
  			    buf);
  			break;
  		}
-diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c
---- openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c	2020-02-07 10:43:23.520048960 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_id.c.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_id.c
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_id.c.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_id.c	2020-09-23 10:52:16.424001475 +0200
 @@ -37,10 +37,11 @@
  #include "xmalloc.h"
  #include "ssh.h"
@@ -887,9 +902,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.c.psaa-compat
      CRYPTO_cleanup_all_ex_data();
      return authenticated;
  }
-diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h
---- openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h	2020-02-07 10:43:05.013757988 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_id.h.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_id.h
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_id.h.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_id.h	2020-09-23 10:52:16.424001475 +0200
 @@ -31,7 +31,7 @@
  #ifndef _USERAUTH_PUBKEY_FROM_ID_H
  #define _USERAUTH_PUBKEY_FROM_ID_H
@@ -900,9 +915,9 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/userauth_pubkey_from_id.h.psaa-compat
 +int userauth_pubkey_from_id(const char *, Identity *, struct sshbuf *);
  
  #endif
-diff -up openssh/pam_ssh_agent_auth-0.10.3/uuencode.c.psaa-compat openssh/pam_ssh_agent_auth-0.10.3/uuencode.c
---- openssh/pam_ssh_agent_auth-0.10.3/uuencode.c.psaa-compat	2016-11-13 04:24:32.000000000 +0100
-+++ openssh/pam_ssh_agent_auth-0.10.3/uuencode.c	2020-02-07 10:43:05.013757988 +0100
+diff -up openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/uuencode.c.psaa-compat openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/uuencode.c
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/uuencode.c.psaa-compat	2019-07-08 18:36:13.000000000 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/uuencode.c	2020-09-23 10:52:16.424001475 +0200
 @@ -56,7 +56,7 @@ pamsshagentauth_uudecode(const char *src
  	/* and remove trailing whitespace because __b64_pton needs this */
  	*p = '\0';
@@ -928,3 +943,50 @@ diff -up openssh/pam_ssh_agent_auth-0.10.3/uuencode.c.psaa-compat openssh/pam_ss
 -	pamsshagentauth_xfree(buf);
 +	free(buf);
  }
+--- openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_pam.c.compat	2020-09-23 11:32:30.783695267 +0200
++++ openssh/pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4/userauth_pubkey_from_pam.c	2020-09-23 11:33:21.383389036 +0200
+@@ -33,7 +33,8 @@
+ #include <string.h>
+ 
+ #include "defines.h"
+-#include "key.h"
++#include <includes.h>
++#include "sshkey.h"
+ #include "log.h"
+ 
+ #include "pam_user_authorized_keys.h"
+@@ -42,28 +42,28 @@
+     int authenticated = 0;
+     const char method[] = "publickey ";
+ 
+-    char* ai = pamsshagentauth_xstrdup(ssh_auth_info);
++    char* ai = xstrdup(ssh_auth_info);
+     char* saveptr;
+ 
+     char* auth_line = strtok_r(ai, "\n", &saveptr);
+     while (auth_line != NULL) {
+         if (strncmp(auth_line, method, sizeof(method) - 1) == 0) {
+             char* key_str = auth_line + sizeof(method) - 1;
+-            Key* key = pamsshagentauth_key_new(KEY_UNSPEC);
++            struct sshkey* key = sshkey_new(KEY_UNSPEC);
+             if (key == NULL) {
+                 continue;
+             }
+-            int r = pamsshagentauth_key_read(key, &key_str);
++            int r = sshkey_read(key, &key_str);
+             if (r == 1) {
+                 if (pam_user_key_allowed(ruser, key)) {
+                     authenticated = 1;
+-                    pamsshagentauth_key_free(key);
++                    sshkey_free(key);
+                     break;
+                 }
+             } else {
+-                pamsshagentauth_verbose("Failed to create key for %s: %d", auth_line, r);
++                verbose("Failed to create key for %s: %d", auth_line, r);
+             }
+-            pamsshagentauth_key_free(key);
++            sshkey_free(key);
+         }
+         auth_line = strtok_r(NULL, "\n", &saveptr);
+     }

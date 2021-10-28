@@ -22,8 +22,8 @@ index c6c03ae..c291a5e 100644
 -		logit("WARNING: 'UsePAM no' is not supported in Fedora and may cause several problems.");
 +		logit("WARNING: 'UsePAM no' is not supported in openEuler and may cause several problems.");
  
- 	/* Fill in default values for those options not explicitly set. */
- 	fill_default_server_options(&options);
+ #ifdef WITH_OPENSSL
+ 	if (options.moduli_file != NULL)
 diff --git a/sshd_config b/sshd_config
 index e125992..ebc28b3 100644
 --- a/sshd_config
@@ -31,7 +31,7 @@ index e125992..ebc28b3 100644
 @@ -87,7 +87,7 @@ AuthorizedKeysFile	.ssh/authorized_keys
  # If you just want the PAM account and session checks to run without
  # PAM authentication, then enable this but set PasswordAuthentication
- # and ChallengeResponseAuthentication to 'no'.
+ # and KbdInteractiveAuthentication to 'no'.
 -# WARNING: 'UsePAM no' is not supported in Fedora and may cause several
 +# WARNING: 'UsePAM no' is not supported in openEuler and may cause several
  # problems.
