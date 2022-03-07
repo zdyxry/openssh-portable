@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 1
+%global openssh_release 2
 
 Name:           openssh
 Version:        8.8p1
@@ -27,6 +27,7 @@ Source10:       sshd.socket
 Source11:       sshd.service
 Source12:       sshd-keygen@.service
 Source13:       sshd-keygen
+Source14:	sshd.tmpfiles
 Source15:       sshd-keygen.target
 Source16:	ssh-agent.service
 Patch0:         openssh-6.7p1-coverity.patch
@@ -325,6 +326,7 @@ install -m644 %{SOURCE16} $RPM_BUILD_ROOT/%{_userunitdir}/ssh-agent.service
 install -m744 %{SOURCE13} $RPM_BUILD_ROOT/%{_libexecdir}/openssh/sshd-keygen
 install -m755 contrib/ssh-copy-id $RPM_BUILD_ROOT%{_bindir}/
 install contrib/ssh-copy-id.1 $RPM_BUILD_ROOT%{_mandir}/man1/
+install -m644 -D %{SOURCE14} $RPM_BUILD_ROOT%{_tmpfilesdir}/%{name}.conf
 install contrib/gnome-ssh-askpass $RPM_BUILD_ROOT%{_libexecdir}/openssh/gnome-ssh-askpass
 
 ln -s gnome-ssh-askpass $RPM_BUILD_ROOT%{_libexecdir}/openssh/ssh-askpass
@@ -392,6 +394,7 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_unitdir}/sshd.socket
 %attr(0644,root,root) %{_unitdir}/sshd-keygen@.service
 %attr(0644,root,root) %{_unitdir}/sshd-keygen.target
+%attr(0644,root,root) %{_tmpfilesdir}/openssh.conf
 
 %files keycat
 %attr(0755,root,root) %{_libexecdir}/openssh/ssh-keycat
@@ -419,6 +422,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Mon Mar 07 2021 kircher<majun65@huawei.com> - 8.8P1-2
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:add sshd.tmpfiles
+
 * Thu Oct 28 2021 kircher<kircherlike@outlook.com> - 8.8P1-1
 - Type:bugfix
 - CVE:NA
