@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 3
+%global openssh_release 4
 
 Name:           openssh
 Version:        8.8p1
@@ -422,6 +422,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu May 05 2022 seuzw<930zhaowei@163.com> - 8.8p1-4
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:fix incorrect sftp-server binary path in /etc/ssh/sshd_config
+
 * Wed Mar 09 2022 duyiwei<duyiwei@kylinos.cn> - 8.8P1-3
 - Type:bugfix
 - CVE:NA
