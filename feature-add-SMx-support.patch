@@ -1,0 +1,1193 @@
+From 93b312c0263cbf40f66448ff7ddbea7a2def1953 Mon Sep 17 00:00:00 2001
+From: kircher <majun65@huawei.com>
+Date: Fri, 29 Jul 2022 10:45:08 +0800
+Subject: [PATCH] add SMx support in openssh
+HostKeyAlgorithms sm2
+KexAlgorithms sm2-sm3
+MACs hmac-sm3
+Ciphers sm4-ctr
+PubkeyAcceptedKeyTypes sm2
+FingerprintHash sm3
+
+---
+ Makefile.in                           |   4 +-
+ authfd.c                              |   2 +
+ authfile.c                            |   1 +
+ cipher.c                              |   1 +
+ digest-openssl.c                      |   1 +
+ digest.h                              |   3 +-
+ kex.c                                 |   1 +
+ kex.h                                 |   3 +
+ kexecdh.c                             |  22 ++-
+ kexgen.c                              |   3 +
+ kexsm2.c                              |  29 ++++
+ mac.c                                 |   1 +
+ pathnames.h                           |   1 +
+ regress/agent.sh                      |   8 +
+ regress/keytype.sh                    |   2 +
+ regress/knownhosts-command.sh         |   1 +
+ regress/misc/fuzz-harness/sig_fuzz.cc |   4 +
+ regress/unittests/kex/test_kex.c      |   3 +
+ ssh-ecdsa.c                           |   6 +-
+ ssh-keygen.c                          |  12 +-
+ ssh-keyscan.c                         |  12 +-
+ ssh-sm2.c                             | 232 ++++++++++++++++++++++++++
+ ssh_api.c                             |   2 +
+ sshconnect2.c                         |   1 +
+ sshd.c                                |   7 +
+ sshkey.c                              |  62 ++++++-
+ sshkey.h                              |   9 +
+ 27 files changed, 417 insertions(+), 16 deletions(-)
+ create mode 100644 kexsm2.c
+ create mode 100644 ssh-sm2.c
+
+diff --git a/Makefile.in b/Makefile.in
+index 07bf440..fb8b006 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -100,14 +100,14 @@ LIBSSH_OBJS=${LIBOPENSSH_OBJS} \
+ 	log.o match.o moduli.o nchan.o packet.o \
+ 	readpass.o ttymodes.o xmalloc.o addr.o addrmatch.o \
+ 	atomicio.o dispatch.o mac.o misc.o utf8.o \
+-	monitor_fdpass.o rijndael.o ssh-dss.o ssh-ecdsa.o ssh-ecdsa-sk.o \
++	monitor_fdpass.o rijndael.o ssh-dss.o ssh-ecdsa.o ssh-ecdsa-sk.o ssh-sm2.o \
+ 	ssh-ed25519-sk.o ssh-rsa.o dh.o \
+ 	msg.o progressmeter.o dns.o entropy.o gss-genr.o umac.o umac128.o \
+ 	ssh-pkcs11.o ssh-pkcs11-uri.o smult_curve25519_ref.o \
+ 	poly1305.o chacha.o cipher-chachapoly.o cipher-chachapoly-libcrypto.o \
+ 	ssh-ed25519.o digest-openssl.o digest-libc.o \
+ 	hmac.o sc25519.o ge25519.o fe25519.o ed25519.o verify.o hash.o \
+-	kex.o kexdh.o kexgex.o kexecdh.o kexc25519.o \
++	kex.o kexdh.o kexgex.o kexecdh.o kexc25519.o kexsm2.o \
+ 	kexgexc.o kexgexs.o \
+ 	kexsntrup761x25519.o sntrup761.o kexgen.o \
+ 	kexgssc.o \
+diff --git a/authfd.c b/authfd.c
+index 9f092f7..163b4b5 100644
+--- a/authfd.c
++++ b/authfd.c
+@@ -512,6 +512,8 @@ ssh_add_identity_constrained(int sock, struct sshkey *key,
+ 	case KEY_DSA_CERT:
+ 	case KEY_ECDSA:
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2:
++	case KEY_SM2_CERT:
+ 	case KEY_ECDSA_SK:
+ 	case KEY_ECDSA_SK_CERT:
+ #endif
+diff --git a/authfile.c b/authfile.c
+index d7827ed..8990137 100644
+--- a/authfile.c
++++ b/authfile.c
+@@ -343,6 +343,7 @@ sshkey_load_private_cert(int type, const char *filename, const char *passphrase,
+ 	case KEY_RSA:
+ 	case KEY_DSA:
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ #endif /* WITH_OPENSSL */
+ 	case KEY_ED25519:
+ 	case KEY_XMSS:
+diff --git a/cipher.c b/cipher.c
+index b54b994..16bfdcb 100644
+--- a/cipher.c
++++ b/cipher.c
+@@ -88,6 +88,7 @@ static const struct sshcipher ciphers[] = {
+ #endif
+ 	{ "chacha20-poly1305@openssh.com",
+ 				8, 64, 0, 16, CFLAG_CHACHAPOLY, NULL },
++	{ "sm4-ctr",		16, 16, 0, 0, 0, EVP_sm4_ctr },
+ 	{ "none",		8, 0, 0, 0, CFLAG_NONE, NULL },
+ 
+ 	{ NULL,			0, 0, 0, 0, 0, NULL }
+diff --git a/digest-openssl.c b/digest-openssl.c
+index 94730e9..a93924b 100644
+--- a/digest-openssl.c
++++ b/digest-openssl.c
+@@ -61,6 +61,7 @@ const struct ssh_digest digests[] = {
+ 	{ SSH_DIGEST_SHA256,	"SHA256",	32,	EVP_sha256 },
+ 	{ SSH_DIGEST_SHA384,	"SHA384",	48,	EVP_sha384 },
+ 	{ SSH_DIGEST_SHA512,	"SHA512",	64,	EVP_sha512 },
++	{ SSH_DIGEST_SM3,	"SM3",		32,	EVP_sm3 },
+ 	{ -1,			NULL,		0,	NULL },
+ };
+ 
+diff --git a/digest.h b/digest.h
+index c7ceeb3..e42affe 100644
+--- a/digest.h
++++ b/digest.h
+@@ -27,7 +27,8 @@
+ #define SSH_DIGEST_SHA256	2
+ #define SSH_DIGEST_SHA384	3
+ #define SSH_DIGEST_SHA512	4
+-#define SSH_DIGEST_MAX		5
++#define SSH_DIGEST_SM3		5
++#define SSH_DIGEST_MAX		6
+ 
+ struct sshbuf;
+ struct ssh_digest_ctx;
+diff --git a/kex.c b/kex.c
+index d0a9dee..6284f90 100644
+--- a/kex.c
++++ b/kex.c
+@@ -124,6 +124,7 @@ static const struct kexalg kexalgs[] = {
+ 	    SSH_DIGEST_SHA512 },
+ #endif
+ #endif /* HAVE_EVP_SHA256 || !WITH_OPENSSL */
++	{ "sm2-sm3", KEX_SM2_SM3, NID_sm2, SSH_DIGEST_SM3 },
+ 	{ NULL, 0, -1, -1},
+ };
+ static const struct kexalg gss_kexalgs[] = {
+diff --git a/kex.h b/kex.h
+index d26ba26..8b95227 100644
+--- a/kex.h
++++ b/kex.h
+@@ -102,6 +102,7 @@ enum kex_exchange {
+ 	KEX_ECDH_SHA2,
+ 	KEX_C25519_SHA256,
+ 	KEX_KEM_SNTRUP761X25519_SHA512,
++	KEX_SM2_SM3,
+ #ifdef GSSAPI
+ 	KEX_GSS_GRP1_SHA1,
+ 	KEX_GSS_GRP14_SHA1,
+@@ -277,6 +278,8 @@ int	kexc25519_shared_key_ext(const u_char key[CURVE25519_SIZE],
+ 	__attribute__((__bounded__(__minbytes__, 1, CURVE25519_SIZE)))
+ 	__attribute__((__bounded__(__minbytes__, 2, CURVE25519_SIZE)));
+ 
++int SM2KAP_compute_key(void *out, size_t outlen, const EC_POINT *pub_key, const EC_KEY *eckey, int server);
++
+ #if defined(DEBUG_KEX) || defined(DEBUG_KEXDH) || defined(DEBUG_KEXECDH)
+ void	dump_digest(const char *, const u_char *, int);
+ #endif
+diff --git a/kexecdh.c b/kexecdh.c
+index efb2e55..a780517 100644
+--- a/kexecdh.c
++++ b/kexecdh.c
+@@ -44,7 +44,7 @@
+ 
+ static int
+ kex_ecdh_dec_key_group(struct kex *, const struct sshbuf *, EC_KEY *key,
+-    const EC_GROUP *, struct sshbuf **);
++    const EC_GROUP *, struct sshbuf **, int server);
+ 
+ int
+ kex_ecdh_keypair(struct kex *kex)
+@@ -124,7 +124,7 @@ kex_ecdh_enc(struct kex *kex, const struct sshbuf *client_blob,
+ 	    (r = sshbuf_get_u32(server_blob, NULL)) != 0)
+ 		goto out;
+ 	if ((r = kex_ecdh_dec_key_group(kex, client_blob, server_key, group,
+-	    shared_secretp)) != 0)
++	    shared_secretp, 0)) != 0)
+ 		goto out;
+ 	*server_blobp = server_blob;
+ 	server_blob = NULL;
+@@ -136,7 +136,7 @@ kex_ecdh_enc(struct kex *kex, const struct sshbuf *client_blob,
+ 
+ static int
+ kex_ecdh_dec_key_group(struct kex *kex, const struct sshbuf *ec_blob,
+-    EC_KEY *key, const EC_GROUP *group, struct sshbuf **shared_secretp)
++    EC_KEY *key, const EC_GROUP *group, struct sshbuf **shared_secretp, int server)
+ {
+ 	struct sshbuf *buf = NULL;
+ 	BIGNUM *shared_secret = NULL;
+@@ -176,10 +176,18 @@ kex_ecdh_dec_key_group(struct kex *kex, const struct sshbuf *ec_blob,
+ 		r = SSH_ERR_ALLOC_FAIL;
+ 		goto out;
+ 	}
+-	if (ECDH_compute_key(kbuf, klen, dh_pub, key, NULL) != (int)klen ||
++	if (kex->ec_nid == NID_sm2) {
++		if (SM2KAP_compute_key(kbuf, klen, dh_pub, key, server) != (int)klen ||
+ 	    BN_bin2bn(kbuf, klen, shared_secret) == NULL) {
+-		r = SSH_ERR_LIBCRYPTO_ERROR;
+-		goto out;
++			r = SSH_ERR_LIBCRYPTO_ERROR;
++			goto out;
++		}
++	} else {
++		if (ECDH_compute_key(kbuf, klen, dh_pub, key, NULL) != (int)klen ||
++	    BN_bin2bn(kbuf, klen, shared_secret) == NULL) {
++			r = SSH_ERR_LIBCRYPTO_ERROR;
++			goto out;
++		}
+ 	}
+ #ifdef DEBUG_KEXECDH
+ 	dump_digest("shared secret", kbuf, klen);
+@@ -203,7 +211,7 @@ kex_ecdh_dec(struct kex *kex, const struct sshbuf *server_blob,
+ 	int r;
+ 
+ 	r = kex_ecdh_dec_key_group(kex, server_blob, kex->ec_client_key,
+-	    kex->ec_group, shared_secretp);
++	    kex->ec_group, shared_secretp, 1);
+ 	EC_KEY_free(kex->ec_client_key);
+ 	kex->ec_client_key = NULL;
+ 	return r;
+diff --git a/kexgen.c b/kexgen.c
+index 31f90f5..f3eff47 100644
+--- a/kexgen.c
++++ b/kexgen.c
+@@ -111,6 +111,7 @@ kex_gen_client(struct ssh *ssh)
+ 		r = kex_dh_keypair(kex);
+ 		break;
+ 	case KEX_ECDH_SHA2:
++	case KEX_SM2_SM3:
+ 		r = kex_ecdh_keypair(kex);
+ 		break;
+ #endif
+@@ -182,6 +183,7 @@ input_kex_gen_reply(int type, u_int32_t seq, struct ssh *ssh)
+ 		r = kex_dh_dec(kex, server_blob, &shared_secret);
+ 		break;
+ 	case KEX_ECDH_SHA2:
++	case KEX_SM2_SM3:
+ 		r = kex_ecdh_dec(kex, server_blob, &shared_secret);
+ 		break;
+ #endif
+@@ -280,6 +282,7 @@ input_kex_gen_init(int type, u_int32_t seq, struct ssh *ssh)
+ 		    &shared_secret);
+ 		break;
+ 	case KEX_ECDH_SHA2:
++	case KEX_SM2_SM3:
+ 		r = kex_ecdh_enc(kex, client_pubkey, &server_pubkey,
+ 		    &shared_secret);
+ 		break;
+diff --git a/kexsm2.c b/kexsm2.c
+new file mode 100644
+index 0000000..f9b8bb9
+--- /dev/null
++++ b/kexsm2.c
+@@ -0,0 +1,29 @@
++#include <openssl/err.h>
++#include <openssl/evp.h>
++#include <openssl/bn.h>
++#include <openssl/ecdh.h>
++#include <openssl/ec.h>
++#include <openssl/sm2.h>
++#include <string.h>
++
++int SM2KAP_compute_key(void *out, size_t outlen, const EC_POINT *pub_key, const EC_KEY *eckey, int server)
++{
++	int ret = 0;
++	EC_KEY *pubkey = NULL;
++	unsigned char id[16] = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8};
++
++	if ((pubkey = EC_KEY_new_by_curve_name(NID_sm2)) == NULL) {
++		return ret;
++	}
++
++	if (EC_KEY_set_public_key(pubkey, pub_key) != 1) {
++		ret = 0;
++		goto out;
++	}
++
++	ret = SM2_compute_key(out, outlen, server, id, sizeof(id), id, sizeof(id), pubkey, eckey, pubkey, eckey, (EVP_MD*)EVP_sm3());
++
++out:
++	EC_KEY_free(pubkey);
++	return ret;
++}
+diff --git a/mac.c b/mac.c
+index bf051ba..d643dc8 100644
+--- a/mac.c
++++ b/mac.c
+@@ -65,6 +65,7 @@ static const struct macalg macs[] = {
+ 	{ "hmac-md5-96",			SSH_DIGEST, SSH_DIGEST_MD5, 96, 0, 0, 0 },
+ 	{ "umac-64@openssh.com",		SSH_UMAC, 0, 0, 128, 64, 0 },
+ 	{ "umac-128@openssh.com",		SSH_UMAC128, 0, 0, 128, 128, 0 },
++	{ "hmac-sm3",				SSH_DIGEST, SSH_DIGEST_SM3, 0, 0, 0, 0 },
+ 
+ 	/* Encrypt-then-MAC variants */
+ 	{ "hmac-sha1-etm@openssh.com",		SSH_DIGEST, SSH_DIGEST_SHA1, 0, 0, 0, 1 },
+diff --git a/pathnames.h b/pathnames.h
+index a094888..0323fac 100644
+--- a/pathnames.h
++++ b/pathnames.h
+@@ -80,6 +80,7 @@
+ #define _PATH_SSH_CLIENT_ID_XMSS	_PATH_SSH_USER_DIR "/id_xmss"
+ #define _PATH_SSH_CLIENT_ID_ECDSA_SK	_PATH_SSH_USER_DIR "/id_ecdsa_sk"
+ #define _PATH_SSH_CLIENT_ID_ED25519_SK	_PATH_SSH_USER_DIR "/id_ed25519_sk"
++#define _PATH_SSH_CLIENT_ID_SM2		_PATH_SSH_USER_DIR "/id_sm2"
+ 
+ /*
+  * Configuration file in user's home directory.  This file need not be
+diff --git a/regress/agent.sh b/regress/agent.sh
+index f187b67..046c2a6 100644
+--- a/regress/agent.sh
++++ b/regress/agent.sh
+@@ -87,9 +87,17 @@ fi
+ for t in ${SSH_KEYTYPES}; do
+ 	trace "connect via agent using $t key"
+ 	if [ "$t" = "ssh-dss" ]; then
++		sed -i "/PubkeyAcceptedAlgorithms/d" $OBJ/ssh_proxy
++		sed -i "/PubkeyAcceptedAlgorithms/d" $OBJ/sshd_proxy
+ 		echo "PubkeyAcceptedAlgorithms +ssh-dss" >> $OBJ/ssh_proxy
+ 		echo "PubkeyAcceptedAlgorithms +ssh-dss" >> $OBJ/sshd_proxy
+ 	fi
++	if [ "$t" = "sm2" ]; then
++		sed -i "/PubkeyAcceptedAlgorithms/d" $OBJ/ssh_proxy
++		sed -i "/PubkeyAcceptedAlgorithms/d" $OBJ/sshd_proxy
++		echo "PubkeyAcceptedAlgorithms +sm2,sm2-cert" >> $OBJ/ssh_proxy
++		echo "PubkeyAcceptedAlgorithms +sm2,sm2-cert" >> $OBJ/sshd_proxy
++	fi
+ 	${SSH} -F $OBJ/ssh_proxy -i $OBJ/$t-agent.pub -oIdentitiesOnly=yes \
+ 		somehost exit 52
+ 	r=$?
+diff --git a/regress/keytype.sh b/regress/keytype.sh
+index f1c0451..2665bd6 100644
+--- a/regress/keytype.sh
++++ b/regress/keytype.sh
+@@ -18,6 +18,7 @@ for i in ${SSH_KEYTYPES}; do
+ 		ecdsa-sha2-nistp521)	ktypes="$ktypes ecdsa-521" ;;
+ 		sk-ssh-ed25519*)	ktypes="$ktypes ed25519-sk" ;;
+ 		sk-ecdsa-sha2-nistp256*) ktypes="$ktypes ecdsa-sk" ;;
++		sm2)			ktypes="$ktypes sm2-256" ;;
+ 	esac
+ done
+ 
+@@ -44,6 +45,7 @@ kname_to_ktype() {
+ 	rsa-*)		echo rsa-sha2-512,rsa-sha2-256,ssh-rsa;;
+ 	ed25519-sk)	echo sk-ssh-ed25519@openssh.com;;
+ 	ecdsa-sk)	echo sk-ecdsa-sha2-nistp256@openssh.com;;
++	sm2-256)	echo sm2;;
+ 	esac
+ }
+ 
+diff --git a/regress/knownhosts-command.sh b/regress/knownhosts-command.sh
+index 8472ec8..7f56fb1 100644
+--- a/regress/knownhosts-command.sh
++++ b/regress/knownhosts-command.sh
+@@ -41,6 +41,7 @@ ${SSH} -F $OBJ/ssh_proxy x true && fail "ssh connect succeeded with bad exit"
+ for keytype in ${SSH_HOSTKEY_TYPES} ; do
+ 	algs=$keytype
+ 	test "x$keytype" = "xssh-dss" && continue
++	test "x$keytype" = "xsm2" && continue
+ 	test "x$keytype" = "xssh-rsa" && algs=ssh-rsa,rsa-sha2-256,rsa-sha2-512
+ 	verbose "keytype $keytype"
+ 	cat > $OBJ/knownhosts_command << _EOF
+diff --git a/regress/misc/fuzz-harness/sig_fuzz.cc b/regress/misc/fuzz-harness/sig_fuzz.cc
+index b32502b..f260692 100644
+--- a/regress/misc/fuzz-harness/sig_fuzz.cc
++++ b/regress/misc/fuzz-harness/sig_fuzz.cc
+@@ -30,6 +30,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* sig, size_t slen)
+   static struct sshkey *ecdsa256 = generate_or_die(KEY_ECDSA, 256);
+   static struct sshkey *ecdsa384 = generate_or_die(KEY_ECDSA, 384);
+   static struct sshkey *ecdsa521 = generate_or_die(KEY_ECDSA, 521);
++  static struct sshkey *sm2 = generate_or_die(KEY_SM2, 256);
+ #endif
+   struct sshkey_sig_details *details = NULL;
+   static struct sshkey *ed25519 = generate_or_die(KEY_ED25519, 0);
+@@ -53,6 +54,9 @@ int LLVMFuzzerTestOneInput(const uint8_t* sig, size_t slen)
+   sshkey_verify(ecdsa521, sig, slen, (const u_char *)data, dlen, NULL, 0, &details);
+   sshkey_sig_details_free(details);
+   details = NULL;
++  sshkey_verify(sm2, sig, slen, (const u_char *)data, dlen, NULL, 0, &details);
++  sshkey_sig_details_free(details);
++  details = NULL;
+ #endif
+   sshkey_verify(ed25519, sig, slen, (const u_char *)data, dlen, NULL, 0, &details);
+   sshkey_sig_details_free(details);
+diff --git a/regress/unittests/kex/test_kex.c b/regress/unittests/kex/test_kex.c
+index 3bd71a9..9c537d1 100644
+--- a/regress/unittests/kex/test_kex.c
++++ b/regress/unittests/kex/test_kex.c
+@@ -153,6 +153,7 @@ do_kex_with_key(char *kex, int keytype, int bits)
+ #endif /* WITH_OPENSSL */
+ 	server2->kex->kex[KEX_C25519_SHA256] = kex_gen_server;
+ 	server2->kex->kex[KEX_KEM_SNTRUP761X25519_SHA512] = kex_gen_server;
++	server2->kex->kex[KEX_SM2_SM3] = kex_gen_server;
+ 	server2->kex->load_host_public_key = server->kex->load_host_public_key;
+ 	server2->kex->load_host_private_key = server->kex->load_host_private_key;
+ 	server2->kex->sign = server->kex->sign;
+@@ -186,6 +187,7 @@ do_kex(char *kex)
+ #endif /* OPENSSL_HAS_ECC */
+ #endif /* WITH_OPENSSL */
+ 	do_kex_with_key(kex, KEY_ED25519, 256);
++	do_kex_with_key(kex, KEY_SM2, 256);
+ }
+ 
+ void
+@@ -202,6 +204,7 @@ kex_tests(void)
+ 	do_kex("diffie-hellman-group-exchange-sha1");
+ 	do_kex("diffie-hellman-group14-sha1");
+ 	do_kex("diffie-hellman-group1-sha1");
++	do_kex("sm2-sm3");
+ # ifdef USE_SNTRUP761X25519
+ 	do_kex("sntrup761x25519-sha512@openssh.com");
+ # endif /* USE_SNTRUP761X25519 */
+diff --git a/ssh-ecdsa.c b/ssh-ecdsa.c
+index b036796..7eed8ae 100644
+--- a/ssh-ecdsa.c
++++ b/ssh-ecdsa.c
+@@ -66,7 +66,8 @@ ssh_ecdsa_sign(const struct sshkey *key, u_char **sigp, size_t *lenp,
+ 		*sigp = NULL;
+ 
+ 	if (key == NULL || key->ecdsa == NULL ||
+-	    sshkey_type_plain(key->type) != KEY_ECDSA)
++	    (sshkey_type_plain(key->type) != KEY_ECDSA &&
++	    sshkey_type_plain(key->type) != KEY_SM2))
+ 		return SSH_ERR_INVALID_ARGUMENT;
+ 
+ 	if ((hash_alg = sshkey_ec_nid_to_hash_alg(key->ecdsa_nid)) == -1)
+@@ -133,7 +134,8 @@ ssh_ecdsa_verify(const struct sshkey *key,
+ 	unsigned char *sigb = NULL, *psig = NULL;
+ 
+ 	if (key == NULL || key->ecdsa == NULL ||
+-	    sshkey_type_plain(key->type) != KEY_ECDSA ||
++	    (sshkey_type_plain(key->type) != KEY_ECDSA &&
++	     sshkey_type_plain(key->type) != KEY_SM2) ||
+ 	    signature == NULL || signaturelen == 0)
+ 		return SSH_ERR_INVALID_ARGUMENT;
+ 
+diff --git a/ssh-keygen.c b/ssh-keygen.c
+index e04bade..7fc616c 100644
+--- a/ssh-keygen.c
++++ b/ssh-keygen.c
+@@ -192,6 +192,7 @@ type_bits_valid(int type, const char *name, u_int32_t *bitsp)
+ 			*bitsp = DEFAULT_BITS_DSA;
+ 			break;
+ 		case KEY_ECDSA:
++		case KEY_SM2:
+ 			if (name != NULL &&
+ 			    (nid = sshkey_ecdsa_nid_from_name(name)) > 0)
+ 				*bitsp = sshkey_curve_nid_to_bits(nid);
+@@ -224,6 +225,10 @@ type_bits_valid(int type, const char *name, u_int32_t *bitsp)
+ 			fatal("Invalid RSA key length: maximum is %d bits",
+ 			    OPENSSL_RSA_MAX_MODULUS_BITS);
+ 		break;
++	case KEY_SM2:
++		if (*bitsp != 256)
++			fatal("Invalid SM2 key length: must be 256 bits");
++		break;
+ 	case KEY_ECDSA:
+ 		if (sshkey_ecdsa_bits_to_nid(*bitsp) == -1)
+ #ifdef OPENSSL_HAS_NISTP521
+@@ -280,6 +285,9 @@ ask_filename(struct passwd *pw, const char *prompt)
+ 		case KEY_ECDSA:
+ 			name = _PATH_SSH_CLIENT_ID_ECDSA;
+ 			break;
++		case KEY_SM2:
++			name = _PATH_SSH_CLIENT_ID_SM2;
++			break;
+ 		case KEY_ECDSA_SK_CERT:
+ 		case KEY_ECDSA_SK:
+ 			name = _PATH_SSH_CLIENT_ID_ECDSA_SK;
+@@ -391,6 +399,7 @@ do_convert_to_pkcs8(struct sshkey *k)
+ 		break;
+ #ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ 		if (!PEM_write_EC_PUBKEY(stdout, k->ecdsa))
+ 			fatal("PEM_write_EC_PUBKEY failed");
+ 		break;
+@@ -415,6 +424,7 @@ do_convert_to_pem(struct sshkey *k)
+ 		break;
+ #ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ 		if (!PEM_write_EC_PUBKEY(stdout, k->ecdsa))
+ 			fatal("PEM_write_EC_PUBKEY failed");
+ 		break;
+@@ -3148,7 +3158,7 @@ usage(void)
+ 	fprintf(stderr,
+ 	    "usage: ssh-keygen [-q] [-a rounds] [-b bits] [-C comment] [-f output_keyfile]\n"
+ 	    "                  [-m format] [-N new_passphrase] [-O option]\n"
+-	    "                  [-t dsa | ecdsa | ecdsa-sk | ed25519 | ed25519-sk | rsa]\n"
++	    "                  [-t dsa | ecdsa | ecdsa-sk | ed25519 | ed25519-sk | rsa | sm2]\n"
+ 	    "                  [-w provider] [-Z cipher]\n"
+ 	    "       ssh-keygen -p [-a rounds] [-f keyfile] [-m format] [-N new_passphrase]\n"
+ 	    "                   [-P old_passphrase] [-Z cipher]\n"
+diff --git a/ssh-keyscan.c b/ssh-keyscan.c
+index 9ec4d9a..94a734c 100644
+--- a/ssh-keyscan.c
++++ b/ssh-keyscan.c
+@@ -63,9 +63,10 @@ int ssh_port = SSH_DEFAULT_PORT;
+ #define KT_XMSS		(1<<4)
+ #define KT_ECDSA_SK	(1<<5)
+ #define KT_ED25519_SK	(1<<6)
++#define KT_SM2		(1<<7)
+ 
+ #define KT_MIN		KT_DSA
+-#define KT_MAX		KT_ED25519_SK
++#define KT_MAX		KT_SM2
+ 
+ int get_cert = 0;
+ int get_keytypes = KT_RSA|KT_ECDSA|KT_ED25519|KT_ECDSA_SK|KT_ED25519_SK;
+@@ -261,6 +262,11 @@ keygrab_ssh2(con *c)
+ 		    "ecdsa-sha2-nistp384,"
+ 		    "ecdsa-sha2-nistp521";
+ 		break;
++	case KT_SM2:
++		myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS] = get_cert ?
++		    "sm2-cert" :
++		    "sm2";
++		break;
+ 	case KT_ECDSA_SK:
+ 		myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS] = get_cert ?
+ 		    "sk-ecdsa-sha2-nistp256-cert-v01@openssh.com" :
+@@ -290,6 +296,7 @@ keygrab_ssh2(con *c)
+ 	c->c_ssh->kex->kex[KEX_DH_GEX_SHA256] = kexgex_client;
+ # ifdef OPENSSL_HAS_ECC
+ 	c->c_ssh->kex->kex[KEX_ECDH_SHA2] = kex_gen_client;
++	c->c_ssh->kex->kex[KEX_SM2_SM3] = kex_gen_client;
+ # endif
+ #endif
+ 	c->c_ssh->kex->kex[KEX_C25519_SHA256] = kex_gen_client;
+@@ -730,6 +737,9 @@ main(int argc, char **argv)
+ 				case KEY_ECDSA:
+ 					get_keytypes |= KT_ECDSA;
+ 					break;
++				case KEY_SM2:
++					get_keytypes |= KT_SM2;
++					break;
+ 				case KEY_RSA:
+ 					get_keytypes |= KT_RSA;
+ 					break;
+diff --git a/ssh-sm2.c b/ssh-sm2.c
+new file mode 100644
+index 0000000..4d452e4
+--- /dev/null
++++ b/ssh-sm2.c
+@@ -0,0 +1,232 @@
++#include "includes.h"
++#include <sys/types.h>
++#include <openssl/bn.h>
++#include <openssl/ecdsa.h>
++#include <openssl/evp.h>
++
++#include <string.h>
++#include "sshbuf.h"
++#include "ssherr.h"
++#include "digest.h"
++#include "sshkey.h"
++
++#include "openbsd-compat/openssl-compat.h"
++
++const unsigned char *sm2_id = (const unsigned char *)"1234567812345678";
++
++int
++ssh_sm2_sign(const struct sshkey *key, u_char **sigp, size_t *lenp,
++    const u_char *data, size_t datalen, u_int compat)
++{
++	u_char *sig = NULL;
++	size_t slen = 0;
++	int pkey_len = 0;
++	int r = 0;
++	int len = 0;
++	EVP_PKEY *key_sm2 = NULL;
++	struct sshbuf *b = NULL;
++	EVP_PKEY_CTX *pctx = NULL;
++	EVP_MD_CTX *mctx = NULL;
++	int ret = SSH_ERR_INTERNAL_ERROR;
++
++	if (lenp != NULL)
++		*lenp = 0;
++	if (sigp != NULL)
++		*sigp = NULL;
++
++	if (key == NULL || key->ecdsa == NULL ||
++	    sshkey_type_plain(key->type) != KEY_SM2) {
++		return SSH_ERR_INVALID_ARGUMENT;
++	}
++
++	if ((key_sm2 = EVP_PKEY_new()) == NULL) {
++		return SSH_ERR_ALLOC_FAIL;
++	}
++
++	if ((EVP_PKEY_set1_EC_KEY(key_sm2, key->ecdsa)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((pkey_len = EVP_PKEY_size(key_sm2)) == 0) {
++		ret = SSH_ERR_INVALID_ARGUMENT;
++		goto out;
++	}
++
++	slen = pkey_len;
++
++	if ((EVP_PKEY_set_alias_type(key_sm2, EVP_PKEY_SM2)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((sig = OPENSSL_malloc(pkey_len)) == NULL) {
++		ret = SSH_ERR_ALLOC_FAIL;
++		goto out;
++	}
++
++	if ((pctx = EVP_PKEY_CTX_new(key_sm2, NULL)) == NULL) {
++		ret = SSH_ERR_ALLOC_FAIL;
++		goto out;
++	}
++
++	if (EVP_PKEY_CTX_set1_id(pctx, sm2_id, 16) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((mctx = EVP_MD_CTX_new()) == NULL) {
++		ret = SSH_ERR_ALLOC_FAIL;
++		goto out;
++	}
++
++	EVP_MD_CTX_set_pkey_ctx(mctx, pctx);
++
++	if ((EVP_DigestSignInit(mctx, NULL, EVP_sm3(), NULL, key_sm2)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((EVP_DigestSignUpdate(mctx, data, datalen)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((EVP_DigestSignFinal(mctx, sig, &slen)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((b = sshbuf_new()) == NULL) {
++		ret = SSH_ERR_ALLOC_FAIL;
++		goto out;
++	}
++
++	if ((r = sshbuf_put_cstring(b, "sm2")) != 0 ||
++	    (r = sshbuf_put_string(b, sig, slen)) != 0)
++		goto out;
++
++	len = sshbuf_len(b);
++	if (sigp != NULL) {
++		if ((*sigp = malloc(len)) == NULL) {
++			ret = SSH_ERR_ALLOC_FAIL;
++			goto out;
++		}
++		memcpy(*sigp, sshbuf_ptr(b), len);
++	}
++	if (lenp != NULL)
++		*lenp = len;
++	ret = 0;
++
++out:
++	EVP_PKEY_free(key_sm2);
++	if (sig != NULL){
++		explicit_bzero(sig, slen);
++		OPENSSL_free(sig);
++	}
++	EVP_PKEY_CTX_free(pctx);
++	EVP_MD_CTX_free(mctx);
++	sshbuf_free(b);
++	return ret;
++}
++
++int
++ssh_sm2_verify(const struct sshkey *key,
++    const u_char *signature, size_t signaturelen,
++    const u_char *data, size_t datalen, u_int compat)
++{
++	const u_char *sig = NULL;
++	char *ktype = NULL;
++	size_t slen = 0;
++	int pkey_len = 0;
++	int r = 0;
++	int len = 0;
++	EVP_PKEY *key_sm2 = NULL;
++	struct sshbuf *b = NULL;
++	EVP_PKEY_CTX *pctx = NULL;
++	EVP_MD_CTX *mctx = NULL;
++	int ret = SSH_ERR_INTERNAL_ERROR;
++
++	if (key == NULL || 
++	    sshkey_type_plain(key->type) != KEY_SM2 ||
++	    signature == NULL || signaturelen == 0)
++		return SSH_ERR_INVALID_ARGUMENT;
++
++	if ((b = sshbuf_from(signature, signaturelen)) == NULL)
++		return SSH_ERR_ALLOC_FAIL;
++
++	if ((r = sshbuf_get_cstring(b, &ktype, NULL)) != 0 ||
++	    (r = sshbuf_get_string_direct(b, &sig, &slen)) != 0)
++		goto out;
++
++	if (strcmp("sm2", ktype) != 0) {
++		ret = SSH_ERR_KEY_TYPE_MISMATCH;
++		goto out;
++	}
++
++	if (sshbuf_len(b) != 0) {
++		ret = SSH_ERR_UNEXPECTED_TRAILING_DATA;
++		goto out;
++	}
++
++	if ((key_sm2 = EVP_PKEY_new()) == NULL) {
++		ret = SSH_ERR_ALLOC_FAIL;
++		goto out;
++	}
++
++	if ((EVP_PKEY_set1_EC_KEY(key_sm2, key->ecdsa)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((pkey_len = EVP_PKEY_size(key_sm2)) == 0) {
++		ret = SSH_ERR_INVALID_ARGUMENT;
++		goto out;
++	}
++
++	if ((EVP_PKEY_set_alias_type(key_sm2, EVP_PKEY_SM2)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((pctx = EVP_PKEY_CTX_new(key_sm2, NULL)) == NULL) {
++		ret = SSH_ERR_ALLOC_FAIL;
++		goto out;
++	}
++
++	if (EVP_PKEY_CTX_set1_id(pctx, sm2_id, 16) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((mctx = EVP_MD_CTX_new()) == NULL) {
++		ret = SSH_ERR_ALLOC_FAIL;
++		goto out;
++	}
++
++	EVP_MD_CTX_set_pkey_ctx(mctx, pctx);
++
++	if ((EVP_DigestVerifyInit(mctx, NULL, EVP_sm3(), NULL, key_sm2)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((EVP_DigestVerifyUpdate(mctx, data, datalen)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	if ((EVP_DigestVerifyFinal(mctx, sig, slen)) != 1) {
++		ret = SSH_ERR_INTERNAL_ERROR;
++		goto out;
++	}
++
++	ret = 0;
++out:
++	EVP_PKEY_free(key_sm2);
++	EVP_PKEY_CTX_free(pctx);
++	EVP_MD_CTX_free(mctx);
++	sshbuf_free(b);
++	free(ktype);
++	return ret;
++}
+diff --git a/ssh_api.c b/ssh_api.c
+index d3c6617..adc2598 100644
+--- a/ssh_api.c
++++ b/ssh_api.c
+@@ -115,6 +115,7 @@ ssh_init(struct ssh **sshp, int is_server, struct kex_params *kex_params)
+ 		ssh->kex->kex[KEX_DH_GEX_SHA256] = kexgex_server;
+ # ifdef OPENSSL_HAS_ECC
+ 		ssh->kex->kex[KEX_ECDH_SHA2] = kex_gen_server;
++		ssh->kex->kex[KEX_SM2_SM3] = kex_gen_server;
+ # endif
+ #endif /* WITH_OPENSSL */
+ 		ssh->kex->kex[KEX_C25519_SHA256] = kex_gen_server;
+@@ -133,6 +134,7 @@ ssh_init(struct ssh **sshp, int is_server, struct kex_params *kex_params)
+ 		ssh->kex->kex[KEX_DH_GEX_SHA256] = kexgex_client;
+ # ifdef OPENSSL_HAS_ECC
+ 		ssh->kex->kex[KEX_ECDH_SHA2] = kex_gen_client;
++		ssh->kex->kex[KEX_SM2_SM3] = kex_gen_client;
+ # endif
+ #endif /* WITH_OPENSSL */
+ 		ssh->kex->kex[KEX_C25519_SHA256] = kex_gen_client;
+diff --git a/sshconnect2.c b/sshconnect2.c
+index aa32ece..e90eb89 100644
+--- a/sshconnect2.c
++++ b/sshconnect2.c
+@@ -327,6 +327,7 @@ ssh_kex2(struct ssh *ssh, char *host, struct sockaddr *hostaddr, u_short port,
+ 	ssh->kex->kex[KEX_DH_GEX_SHA256] = kexgex_client;
+ # ifdef OPENSSL_HAS_ECC
+ 	ssh->kex->kex[KEX_ECDH_SHA2] = kex_gen_client;
++	ssh->kex->kex[KEX_SM2_SM3] = kex_gen_client;
+ # endif
+ # ifdef GSSAPI
+ 	if (options.gss_keyex) {
+diff --git a/sshd.c b/sshd.c
+index b7b0c18..dd7cdee 100644
+--- a/sshd.c
++++ b/sshd.c
+@@ -706,6 +706,7 @@ list_hostkey_types(void)
+ 			/* FALLTHROUGH */
+ 		case KEY_DSA:
+ 		case KEY_ECDSA:
++		case KEY_SM2:
+ 		case KEY_ED25519:
+ 		case KEY_ECDSA_SK:
+ 		case KEY_ED25519_SK:
+@@ -727,6 +728,7 @@ list_hostkey_types(void)
+ 			/* FALLTHROUGH */
+ 		case KEY_DSA_CERT:
+ 		case KEY_ECDSA_CERT:
++		case KEY_SM2_CERT:
+ 		case KEY_ED25519_CERT:
+ 		case KEY_ECDSA_SK_CERT:
+ 		case KEY_ED25519_SK_CERT:
+@@ -753,6 +755,7 @@ get_hostkey_by_type(int type, int nid, int need_private, struct ssh *ssh)
+ 		case KEY_RSA_CERT:
+ 		case KEY_DSA_CERT:
+ 		case KEY_ECDSA_CERT:
++		case KEY_SM2_CERT:
+ 		case KEY_ED25519_CERT:
+ 		case KEY_ECDSA_SK_CERT:
+ 		case KEY_ED25519_SK_CERT:
+@@ -769,8 +772,10 @@ get_hostkey_by_type(int type, int nid, int need_private, struct ssh *ssh)
+ 			continue;
+ 		switch (type) {
+ 		case KEY_ECDSA:
++		case KEY_SM2:
+ 		case KEY_ECDSA_SK:
+ 		case KEY_ECDSA_CERT:
++		case KEY_SM2_CERT:
+ 		case KEY_ECDSA_SK_CERT:
+ 			if (key->ecdsa_nid != nid)
+ 				continue;
+@@ -1983,6 +1988,7 @@ main(int ac, char **av)
+ 		case KEY_RSA:
+ 		case KEY_DSA:
+ 		case KEY_ECDSA:
++		case KEY_SM2:
+ 		case KEY_ED25519:
+ 		case KEY_ECDSA_SK:
+ 		case KEY_ED25519_SK:
+@@ -2570,6 +2576,7 @@ do_ssh2_kex(struct ssh *ssh)
+ 	kex->kex[KEX_DH_GEX_SHA256] = kexgex_server;
+ # ifdef OPENSSL_HAS_ECC
+ 	kex->kex[KEX_ECDH_SHA2] = kex_gen_server;
++	kex->kex[KEX_SM2_SM3] = kex_gen_server;
+ # endif
+ # ifdef GSSAPI
+ 	if (options.gss_keyex) {
+diff --git a/sshkey.c b/sshkey.c
+index b0c2189..1b70488 100644
+--- a/sshkey.c
++++ b/sshkey.c
+@@ -159,6 +159,8 @@ static const struct keytype keytypes[] = {
+ # endif /* OPENSSL_HAS_ECC */
+ #endif /* WITH_OPENSSL */
+ 	{ "null", "null", NULL, KEY_NULL, 0, 0, 0 },
++	{ "sm2", "SM2", NULL, KEY_SM2, NID_sm2, 0, 0 },
++	{ "sm2-cert", "SM2-CERT", NULL, KEY_SM2_CERT, NID_sm2, 1, 0 },
+ 	{ NULL, NULL, NULL, -1, -1, 0, 0 }
+ };
+ 
+@@ -233,6 +235,8 @@ key_type_is_ecdsa_variant(int type)
+ 	case KEY_ECDSA_CERT:
+ 	case KEY_ECDSA_SK:
+ 	case KEY_ECDSA_SK_CERT:
++	case KEY_SM2:
++	case KEY_SM2_CERT:
+ 		return 1;
+ 	}
+ 	return 0;
+@@ -340,6 +344,8 @@ sshkey_size(const struct sshkey *k)
+ 		return BN_num_bits(dsa_p);
+ 	case KEY_ECDSA:
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2:
++	case KEY_SM2_CERT:
+ 	case KEY_ECDSA_SK:
+ 	case KEY_ECDSA_SK_CERT:
+ 		return sshkey_curve_nid_to_bits(k->ecdsa_nid);
+@@ -366,6 +372,8 @@ sshkey_type_is_valid_ca(int type)
+ 	case KEY_ED25519:
+ 	case KEY_ED25519_SK:
+ 	case KEY_XMSS:
++	case KEY_SM2:
++	case KEY_SM2_CERT:
+ 		return 1;
+ 	default:
+ 		return 0;
+@@ -445,6 +453,8 @@ sshkey_type_plain(int type)
+ 		return KEY_ED25519_SK;
+ 	case KEY_XMSS_CERT:
+ 		return KEY_XMSS;
++	case KEY_SM2_CERT:
++		return KEY_SM2;
+ 	default:
+ 		return type;
+ 	}
+@@ -540,6 +550,8 @@ sshkey_curve_name_to_nid(const char *name)
+ 	else if (strcmp(name, "nistp521") == 0)
+ 		return NID_secp521r1;
+ # endif /* OPENSSL_HAS_NISTP521 */
++	else if (strcmp(name, "sm2") == 0)
++		return NID_sm2;
+ 	else
+ 		return -1;
+ }
+@@ -556,6 +568,8 @@ sshkey_curve_nid_to_bits(int nid)
+ 	case NID_secp521r1:
+ 		return 521;
+ # endif /* OPENSSL_HAS_NISTP521 */
++	case NID_sm2:
++		return 256;
+ 	default:
+ 		return 0;
+ 	}
+@@ -590,6 +604,8 @@ sshkey_curve_nid_to_name(int nid)
+ 	case NID_secp521r1:
+ 		return "nistp521";
+ # endif /* OPENSSL_HAS_NISTP521 */
++	case NID_sm2:
++		return "sm2";
+ 	default:
+ 		return NULL;
+ 	}
+@@ -693,6 +709,8 @@ sshkey_new(int type)
+ 		break;
+ 	case KEY_ECDSA:
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2:
++	case KEY_SM2_CERT:
+ 	case KEY_ECDSA_SK:
+ 	case KEY_ECDSA_SK_CERT:
+ 		/* Cannot do anything until we know the group */
+@@ -749,6 +767,8 @@ sshkey_free(struct sshkey *k)
+ 		/* FALLTHROUGH */
+ 	case KEY_ECDSA:
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2:
++	case KEY_SM2_CERT:
+ 		EC_KEY_free(k->ecdsa);
+ 		k->ecdsa = NULL;
+ 		break;
+@@ -858,6 +878,8 @@ sshkey_equal_public(const struct sshkey *a, const struct sshkey *b)
+ 		/* FALLTHROUGH */
+ 	case KEY_ECDSA_CERT:
+ 	case KEY_ECDSA:
++	case KEY_SM2_CERT:
++	case KEY_SM2:
+ 		if (a->ecdsa == NULL || b->ecdsa == NULL ||
+ 		    EC_KEY_get0_public_key(a->ecdsa) == NULL ||
+ 		    EC_KEY_get0_public_key(b->ecdsa) == NULL)
+@@ -933,6 +955,7 @@ to_blob_buf(const struct sshkey *key, struct sshbuf *b, int force_plain,
+ #ifdef WITH_OPENSSL
+ 	case KEY_DSA_CERT:
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2_CERT:
+ 	case KEY_ECDSA_SK_CERT:
+ 	case KEY_RSA_CERT:
+ #endif /* WITH_OPENSSL */
+@@ -962,6 +985,7 @@ to_blob_buf(const struct sshkey *key, struct sshbuf *b, int force_plain,
+ # ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA:
+ 	case KEY_ECDSA_SK:
++	case KEY_SM2:
+ 		if (key->ecdsa == NULL)
+ 			return SSH_ERR_INVALID_ARGUMENT;
+ 		if ((ret = sshbuf_put_cstring(b, typename)) != 0 ||
+@@ -1436,6 +1460,8 @@ sshkey_read(struct sshkey *ret, char **cpp)
+ 	case KEY_DSA:
+ 	case KEY_ECDSA:
+ 	case KEY_ECDSA_SK:
++	case KEY_SM2:
++	case KEY_SM2_CERT:
+ 	case KEY_ED25519:
+ 	case KEY_ED25519_SK:
+ 	case KEY_DSA_CERT:
+@@ -1535,6 +1561,7 @@ sshkey_read(struct sshkey *ret, char **cpp)
+ 		break;
+ # ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ 		EC_KEY_free(ret->ecdsa);
+ 		ret->ecdsa = k->ecdsa;
+ 		ret->ecdsa_nid = k->ecdsa_nid;
+@@ -1795,7 +1822,7 @@ sshkey_ecdsa_key_to_nid(EC_KEY *k)
+ }
+ 
+ static int
+-ecdsa_generate_private_key(u_int bits, int *nid, EC_KEY **ecdsap)
++ecdsa_generate_private_key(u_int bits, int *nid, EC_KEY **ecdsap, int sm2)
+ {
+ 	EC_KEY *private;
+ 	int ret = SSH_ERR_INTERNAL_ERROR;
+@@ -1804,6 +1831,9 @@ ecdsa_generate_private_key(u_int bits, int *nid, EC_KEY **ecdsap)
+ 		return SSH_ERR_INVALID_ARGUMENT;
+ 	if ((*nid = sshkey_ecdsa_bits_to_nid(bits)) == -1)
+ 		return SSH_ERR_KEY_LENGTH;
++	if (sm2 && bits == 256) {
++		*nid = NID_sm2;
++	}
+ 	*ecdsap = NULL;
+ 	if ((private = EC_KEY_new_by_curve_name(*nid)) == NULL) {
+ 		ret = SSH_ERR_ALLOC_FAIL;
+@@ -1857,7 +1887,11 @@ sshkey_generate(int type, u_int bits, struct sshkey **keyp)
+ # ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA:
+ 		ret = ecdsa_generate_private_key(bits, &k->ecdsa_nid,
+-		    &k->ecdsa);
++		    &k->ecdsa, 0);
++		break;
++	case KEY_SM2:
++		ret = ecdsa_generate_private_key(bits, &k->ecdsa_nid,
++		    &k->ecdsa, 1);
+ 		break;
+ # endif /* OPENSSL_HAS_ECC */
+ 	case KEY_RSA:
+@@ -1993,6 +2027,8 @@ sshkey_from_private(const struct sshkey *k, struct sshkey **pkp)
+ 	case KEY_ECDSA_CERT:
+ 	case KEY_ECDSA_SK:
+ 	case KEY_ECDSA_SK_CERT:
++	case KEY_SM2:
++	case KEY_SM2_CERT:
+ 		n->ecdsa_nid = k->ecdsa_nid;
+ 		n->ecdsa = EC_KEY_new_by_curve_name(k->ecdsa_nid);
+ 		if (n->ecdsa == NULL) {
+@@ -2548,6 +2584,7 @@ sshkey_from_blob_internal(struct sshbuf *b, struct sshkey **keyp,
+ 		break;
+ # ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2_CERT:
+ 	case KEY_ECDSA_SK_CERT:
+ 		/* Skip nonce */
+ 		if (sshbuf_get_string_direct(b, NULL, NULL) != 0) {
+@@ -2556,6 +2593,7 @@ sshkey_from_blob_internal(struct sshbuf *b, struct sshkey **keyp,
+ 		}
+ 		/* FALLTHROUGH */
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ 	case KEY_ECDSA_SK:
+ 		if ((key = sshkey_new(type)) == NULL) {
+ 			ret = SSH_ERR_ALLOC_FAIL;
+@@ -2865,6 +2903,10 @@ sshkey_sign(struct sshkey *key,
+ 	case KEY_ECDSA:
+ 		r = ssh_ecdsa_sign(key, sigp, lenp, data, datalen, compat);
+ 		break;
++	case KEY_SM2:
++	case KEY_SM2_CERT:
++		r = ssh_sm2_sign(key, sigp, lenp, data, datalen, compat);
++		break;
+ # endif /* OPENSSL_HAS_ECC */
+ 	case KEY_RSA_CERT:
+ 	case KEY_RSA:
+@@ -2920,6 +2962,9 @@ sshkey_verify(const struct sshkey *key,
+ 	case KEY_ECDSA_CERT:
+ 	case KEY_ECDSA:
+ 		return ssh_ecdsa_verify(key, sig, siglen, data, dlen, compat);
++	case KEY_SM2:
++	case KEY_SM2_CERT:
++		return ssh_sm2_verify(key, sig, siglen, data, dlen, compat);
+ 	case KEY_ECDSA_SK_CERT:
+ 	case KEY_ECDSA_SK:
+ 		return ssh_ecdsa_sk_verify(key, sig, siglen, data, dlen,
+@@ -2963,6 +3008,9 @@ sshkey_to_certified(struct sshkey *k)
+ 	case KEY_ECDSA:
+ 		newtype = KEY_ECDSA_CERT;
+ 		break;
++	case KEY_SM2:
++		newtype = KEY_SM2_CERT;
++		break;
+ 	case KEY_ECDSA_SK:
+ 		newtype = KEY_ECDSA_SK_CERT;
+ 		break;
+@@ -3067,6 +3115,7 @@ sshkey_certify_custom(struct sshkey *k, struct sshkey *ca, const char *alg,
+ 		break;
+ # ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2_CERT:
+ 	case KEY_ECDSA_SK_CERT:
+ 		if ((ret = sshbuf_put_cstring(cert,
+ 		    sshkey_curve_nid_to_name(k->ecdsa_nid))) != 0 ||
+@@ -3380,6 +3429,7 @@ sshkey_private_serialize_opt(struct sshkey *key, struct sshbuf *buf,
+ 		break;
+ # ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ 		if ((r = sshbuf_put_cstring(b,
+ 		    sshkey_curve_nid_to_name(key->ecdsa_nid))) != 0 ||
+ 		    (r = sshbuf_put_eckey(b, key->ecdsa)) != 0 ||
+@@ -3388,6 +3438,7 @@ sshkey_private_serialize_opt(struct sshkey *key, struct sshbuf *buf,
+ 			goto out;
+ 		break;
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2_CERT:
+ 		if (key->cert == NULL || sshbuf_len(key->cert->certblob) == 0) {
+ 			r = SSH_ERR_INVALID_ARGUMENT;
+ 			goto out;
+@@ -3605,6 +3656,7 @@ sshkey_private_deserialize(struct sshbuf *buf, struct sshkey **kp)
+ 		break;
+ # ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ 		if ((k->ecdsa_nid = sshkey_ecdsa_nid_from_name(tname)) == -1) {
+ 			r = SSH_ERR_INVALID_ARGUMENT;
+ 			goto out;
+@@ -3624,6 +3676,7 @@ sshkey_private_deserialize(struct sshbuf *buf, struct sshkey **kp)
+ 			goto out;
+ 		/* FALLTHROUGH */
+ 	case KEY_ECDSA_CERT:
++	case KEY_SM2_CERT:
+ 		if ((r = sshbuf_get_bignum2(buf, &exponent)) != 0)
+ 			goto out;
+ 		if (EC_KEY_set_private_key(k->ecdsa, exponent) != 1) {
+@@ -4519,6 +4572,7 @@ sshkey_private_to_blob_pem_pkcs8(struct sshkey *key, struct sshbuf *buf,
+ 		break;
+ #ifdef OPENSSL_HAS_ECC
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ 		if (format == SSHKEY_PRIVATE_PEM) {
+ 			success = PEM_write_bio_ECPrivateKey(bio, key->ecdsa,
+ 			    cipher, passphrase, len, NULL, NULL);
+@@ -4580,6 +4634,7 @@ sshkey_private_to_fileblob(struct sshkey *key, struct sshbuf *blob,
+ #ifdef WITH_OPENSSL
+ 	case KEY_DSA:
+ 	case KEY_ECDSA:
++	case KEY_SM2:
+ 	case KEY_RSA:
+ 		break; /* see below */
+ #endif /* WITH_OPENSSL */
+@@ -4760,6 +4815,9 @@ sshkey_parse_private_pem_fileblob(struct sshbuf *blob, int type,
+ 		prv->ecdsa = EVP_PKEY_get1_EC_KEY(pk);
+ 		prv->type = KEY_ECDSA;
+ 		prv->ecdsa_nid = sshkey_ecdsa_key_to_nid(prv->ecdsa);
++		if (prv->ecdsa_nid == NID_sm2) {
++			prv->type = KEY_SM2;
++		}
+ 		if (prv->ecdsa_nid == -1 ||
+ 		    sshkey_curve_nid_to_name(prv->ecdsa_nid) == NULL ||
+ 		    sshkey_ec_validate_public(EC_KEY_get0_group(prv->ecdsa),
+diff --git a/sshkey.h b/sshkey.h
+index 43eef5e..3b84096 100644
+--- a/sshkey.h
++++ b/sshkey.h
+@@ -31,6 +31,7 @@
+ #ifdef WITH_OPENSSL
+ #include <openssl/rsa.h>
+ #include <openssl/dsa.h>
++#include <openssl/evp.h>
+ # ifdef OPENSSL_HAS_ECC
+ #  include <openssl/ec.h>
+ #  include <openssl/ecdsa.h>
+@@ -65,6 +66,8 @@ enum sshkey_types {
+ 	KEY_DSA_CERT,
+ 	KEY_ECDSA_CERT,
+ 	KEY_ED25519_CERT,
++	KEY_SM2,
++	KEY_SM2_CERT,
+ 	KEY_XMSS,
+ 	KEY_XMSS_CERT,
+ 	KEY_ECDSA_SK,
+@@ -323,6 +326,12 @@ int ssh_xmss_sign(const struct sshkey *key, u_char **sigp, size_t *lenp,
+ int ssh_xmss_verify(const struct sshkey *key,
+     const u_char *signature, size_t signaturelen,
+     const u_char *data, size_t datalen, u_int compat);
++int ssh_sm2_sign(const struct sshkey *key, u_char **sigp, size_t *lenp,
++    const u_char *data, size_t datalen, u_int compat);
++int ssh_sm2_verify(const struct sshkey *key,
++    const u_char *signature, size_t signaturelen,
++    const u_char *data, size_t datalen, u_int compat);
++
+ #endif
+ 
+ #if !defined(WITH_OPENSSL)
+-- 
+2.33.0
+
