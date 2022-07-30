@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 4
+%global openssh_release 5
 
 Name:           openssh
 Version:        8.8p1
@@ -87,6 +87,7 @@ Patch56:        bugfix-openssh-add-option-check-username-splash.patch
 Patch57:        feature-openssh-7.4-hima-sftpserver-oom-and-fix.patch
 Patch58:        bugfix-openssh-fix-sftpserver.patch
 Patch59:        set-sshd-config.patch
+Patch60:	feature-add-SMx-support.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -224,6 +225,7 @@ popd
 %patch57 -p1
 %patch58 -p1
 %patch59 -p1
+%patch60 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -422,6 +424,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Fri Jul 29 2022 kircher<majun65@huawei.com> - 8.8p1-5
+- Type:bugfix
+- CVE:Na
+- SUG:NA
+- DESC:add SMx support in openssh
+
 * Thu May 05 2022 seuzw<930zhaowei@163.com> - 8.8p1-4
 - Type:bugfix
 - CVE:NA
