@@ -11,16 +11,7 @@ Index: b/sshd_config
 ===================================================================
 --- a/sshd_config
 +++ b/sshd_config
-@@ -12,7 +12,7 @@
- 
- # To modify the system-wide sshd configuration, create a  *.conf  file under
- #  /etc/ssh/sshd_config.d/  which will be automatically included below
--Include /etc/ssh/sshd_config.d/*.conf
-+#Include /etc/ssh/sshd_config.d/*.conf
- 
- # If you want to change the port on a SELinux system, you have to tell
- # SELinux about this change.
-@@ -23,21 +23,22 @@ Include /etc/ssh/sshd_config.d/*.conf
+@@ -23,21 +23,22 @@
  #ListenAddress 0.0.0.0
  #ListenAddress ::
  
