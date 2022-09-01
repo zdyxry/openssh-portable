@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 5
+%global openssh_release 6
 
 Name:           openssh
 Version:        8.8p1
@@ -424,6 +424,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu Sep 01 2022 duyiwei<duyiwei@kylinos.cn> - 8.8P1-6
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:enable "include /etc/ssh/sshd_config.d/*.config" again
+
 * Fri Jul 29 2022 kircher<majun65@huawei.com> - 8.8p1-5
 - Type:bugfix
 - CVE:Na
