@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 6
+%global openssh_release 7
 
 Name:           openssh
 Version:        8.8p1
@@ -27,9 +27,10 @@ Source10:       sshd.socket
 Source11:       sshd.service
 Source12:       sshd-keygen@.service
 Source13:       sshd-keygen
-Source14:	sshd.tmpfiles
+Source14:       sshd.tmpfiles
 Source15:       sshd-keygen.target
-Source16:	ssh-agent.service
+Source16:       ssh-agent.service
+Source17:       ssh-keygen-bash-completion.sh
 Patch0:         openssh-6.7p1-coverity.patch
 Patch1:         openssh-7.6p1-audit.patch
 Patch2:         openssh-7.1p2-audit-race-condition.patch
@@ -307,6 +308,7 @@ mkdir -p -m755 $RPM_BUILD_ROOT%{_sysconfdir}/ssh
 mkdir -p -m755 $RPM_BUILD_ROOT%{_sysconfdir}/ssh/ssh_config.d
 mkdir -p -m755 $RPM_BUILD_ROOT%{_libexecdir}/openssh
 mkdir -p -m755 $RPM_BUILD_ROOT%{_var}/empty/sshd
+mkdir -p -m755 $RPM_BUILD_ROOT%{_sysconfdir}/bash_completion.d
 
 %make_install
 
@@ -330,6 +332,7 @@ install -m755 contrib/ssh-copy-id $RPM_BUILD_ROOT%{_bindir}/
 install contrib/ssh-copy-id.1 $RPM_BUILD_ROOT%{_mandir}/man1/
 install -m644 -D %{SOURCE14} $RPM_BUILD_ROOT%{_tmpfilesdir}/%{name}.conf
 install contrib/gnome-ssh-askpass $RPM_BUILD_ROOT%{_libexecdir}/openssh/gnome-ssh-askpass
+install -m644 %{SOURCE17} $RPM_BUILD_ROOT/etc/bash_completion.d/ssh-keygen-bash-completion.sh
 
 ln -s gnome-ssh-askpass $RPM_BUILD_ROOT%{_libexecdir}/openssh/ssh-askpass
 install -m 755 -d $RPM_BUILD_ROOT%{_sysconfdir}/profile.d/
@@ -368,6 +371,7 @@ getent passwd sshd >/dev/null || \
 %attr(0755,root,root) %{_bindir}/ssh-keygen
 %attr(0755,root,root) %dir %{_libexecdir}/openssh
 %attr(2555,root,ssh_keys) %{_libexecdir}/openssh/ssh-keysign
+%attr(0644,root,root) %{_sysconfdir}/bash_completion.d/ssh-keygen-bash-completion.sh
 
 %files clients
 %attr(0755,root,root) %{_bindir}/ssh
@@ -424,6 +428,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Wed Nov 2 2022 renmingshuai<renmingshuai@huawei.com> - 8.8p1-7
+- Type:requirement
+- CVE:NA
+- SUG:NA
+- DESC:add ssh-keygen bash completion
+
 * Thu Sep 01 2022 duyiwei<duyiwei@kylinos.cn> - 8.8P1-6
 - Type:bugfix
 - CVE:NA
