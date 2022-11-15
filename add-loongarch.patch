@@ -1,0 +1,26 @@
+From b87df88468d90292e7c09b8cfd992011cd812a1c Mon Sep 17 00:00:00 2001
+From: zhaozhen <zhaozhen@loongson.cn>
+Date: Mon, 5 Dec 2022 13:01:36 +0000
+Subject: [PATCH] add loongarch64 support
+
+---
+ configure.ac | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/configure.ac b/configure.ac
+index 307e974..aa3e01b 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -972,6 +972,9 @@ main() { if (NSVersionOfRunTimeLibrary("System") >= (60 << 16))
+ 	riscv64-*)
+ 		seccomp_audit_arch=AUDIT_ARCH_RISCV64
+ 		;;
++	loongarch64-*)
++		seccomp_audit_arch=AUDIT_ARCH_LOONGARCHEL64
++		;;
+ 	esac
+ 	if test "x$seccomp_audit_arch" != "x" ; then
+ 		AC_MSG_RESULT(["$seccomp_audit_arch"])
+-- 
+2.33.0
+
