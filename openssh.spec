@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 7
+%global openssh_release 8
 
 Name:           openssh
 Version:        8.8p1
@@ -77,18 +77,19 @@ Patch46:        openssh-8.0p1-crypto-policies.patch
 Patch47:        openssh-8.0p1-openssl-evp.patch
 Patch48:        openssh-8.0p1-openssl-kdf.patch
 Patch49:        openssh-8.2p1-visibility.patch
-Patch50:	openssh-8.2p1-x11-without-ipv6.patch
-Patch51:	openssh-8.0p1-keygen-strip-doseol.patch
-Patch52:	openssh-8.0p1-preserve-pam-errors.patch
-Patch53:	openssh-8.7p1-scp-kill-switch.patch
-
+Patch50:        openssh-8.2p1-x11-without-ipv6.patch
+Patch51:        openssh-8.0p1-keygen-strip-doseol.patch
+Patch52:        openssh-8.0p1-preserve-pam-errors.patch
+Patch53:        openssh-8.7p1-scp-kill-switch.patch
 Patch54:        bugfix-sftp-when-parse_user_host_path-empty-path-should-be-allowed.patch
 Patch55:        bugfix-openssh-6.6p1-log-usepam-no.patch
 Patch56:        bugfix-openssh-add-option-check-username-splash.patch
 Patch57:        feature-openssh-7.4-hima-sftpserver-oom-and-fix.patch
 Patch58:        bugfix-openssh-fix-sftpserver.patch
 Patch59:        set-sshd-config.patch
-Patch60:	feature-add-SMx-support.patch
+Patch60:        feature-add-SMx-support.patch
+Patch61:        backport-upstream-a-little-extra-debugging.patch
+Patch62:        backport-upstream-better-debugging-for-connect_next.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -227,6 +228,8 @@ popd
 %patch58 -p1
 %patch59 -p1
 %patch60 -p1
+%patch61 -p1
+%patch62 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -428,6 +431,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Mon Nov 28 2022 renmingshuai<renmingshuai@huawei.com> - 8.8p1-8
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:add better debugging
+
 * Wed Nov 2 2022 renmingshuai<renmingshuai@huawei.com> - 8.8p1-7
 - Type:requirement
 - CVE:NA
