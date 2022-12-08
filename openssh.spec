@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 8
+%global openssh_release 9
 
 Name:           openssh
 Version:        8.8p1
@@ -90,6 +90,7 @@ Patch59:        set-sshd-config.patch
 Patch60:        feature-add-SMx-support.patch
 Patch61:        backport-upstream-a-little-extra-debugging.patch
 Patch62:        backport-upstream-better-debugging-for-connect_next.patch
+Patch63:        add-loongarch.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -230,6 +231,7 @@ popd
 %patch60 -p1
 %patch61 -p1
 %patch62 -p1
+%patch63 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -273,7 +275,7 @@ fi
     --without-zlib-version-check --with-ssl-engine --with-ipaddr-display \
     --with-pie=no --without-hardening --with-systemd --with-default-pkcs11-provider=yes \
     --with-pam --with-selinux --with-audit=linux --with-security-key-buildin=yes \
-%ifnarch riscv64	
+%ifnarch riscv64 loongarch64
      --with-sandbox=seccomp_filter \
 %endif
     --with-kerberos5${krb5_prefix:+=${krb5_prefix}} --with-libedit
@@ -431,6 +433,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Mon Nov 28 2022 zhaozhen <zhaozhen@loongson.cn> - 8.8p1-9
+- Type:feature
+- CVE:NA
+- SUG:NA
+- DESC:Add loongarch64 support
+
 * Mon Nov 28 2022 renmingshuai<renmingshuai@huawei.com> - 8.8p1-8
 - Type:bugfix
 - CVE:NA
