@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 9
+%global openssh_release 10
 
 Name:           openssh
 Version:        8.8p1
@@ -91,6 +91,7 @@ Patch60:        feature-add-SMx-support.patch
 Patch61:        backport-upstream-a-little-extra-debugging.patch
 Patch62:        backport-upstream-better-debugging-for-connect_next.patch
 Patch63:        add-loongarch.patch
+Patch64:        backport-upstream-ssh-keygen-Y-check-novalidate-requires-name.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -232,6 +233,7 @@ popd
 %patch61 -p1
 %patch62 -p1
 %patch63 -p1
+%patch64 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -433,6 +435,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Fri Dec 16 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-10
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:Fix ssh-keygen -Y check novalidate requires name
+
 * Mon Nov 28 2022 zhaozhen <zhaozhen@loongson.cn> - 8.8p1-9
 - Type:feature
 - CVE:NA
