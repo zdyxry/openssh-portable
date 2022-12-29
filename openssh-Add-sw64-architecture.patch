@@ -1,0 +1,27 @@
+From 6075cb3ead4cf473d48d0022ec25540707111c10 Mon Sep 17 00:00:00 2001
+From: wzx <wuzx1226@qq.com>
+Date: Thu, 27 Oct 2022 17:19:00 +0800
+Subject: [PATCH] Add sw64 architecture
+
+Signed-off-by: wzx <wuzx1226@qq.com>
+---
+ configure.ac | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/configure.ac b/configure.ac
+index 307e974..612f458 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -931,6 +931,9 @@ main() { if (NSVersionOfRunTimeLibrary("System") >= (60 << 16))
+ 	aarch64*-*)
+ 		seccomp_audit_arch=AUDIT_ARCH_AARCH64
+ 		;;
++	sw_64*-*)
++		seccomp_audit_arch=AUDIT_ARCH_SW_64
++		;;
+ 	s390x-*)
+ 		seccomp_audit_arch=AUDIT_ARCH_S390X
+ 		;;
+-- 
+2.33.0
+

@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 10
+%global openssh_release 11
 
 Name:           openssh
 Version:        8.8p1
@@ -92,6 +92,7 @@ Patch61:        backport-upstream-a-little-extra-debugging.patch
 Patch62:        backport-upstream-better-debugging-for-connect_next.patch
 Patch63:        add-loongarch.patch
 Patch64:        backport-upstream-ssh-keygen-Y-check-novalidate-requires-name.patch
+Patch65:        openssh-Add-sw64-architecture.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -234,6 +235,7 @@ popd
 %patch62 -p1
 %patch63 -p1
 %patch64 -p1
+%patch65 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -277,7 +279,7 @@ fi
     --without-zlib-version-check --with-ssl-engine --with-ipaddr-display \
     --with-pie=no --without-hardening --with-systemd --with-default-pkcs11-provider=yes \
     --with-pam --with-selinux --with-audit=linux --with-security-key-buildin=yes \
-%ifnarch riscv64 loongarch64
+%ifnarch riscv64 loongarch64 sw_64
      --with-sandbox=seccomp_filter \
 %endif
     --with-kerberos5${krb5_prefix:+=${krb5_prefix}} --with-libedit
@@ -435,6 +437,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu Dec 29 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-11
+- Type:requirement
+- CVE:NA
+- SUG:NA
+- DESC:add sw_64 
+
 * Fri Dec 16 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-10
 - Type:bugfix
 - CVE:NA
