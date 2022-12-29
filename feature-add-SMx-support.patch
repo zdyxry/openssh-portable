@@ -6,7 +6,7 @@ HostKeyAlgorithms sm2
 KexAlgorithms sm2-sm3
 MACs hmac-sm3
 Ciphers sm4-ctr
-PubkeyAcceptedKeyTypes sm2
+PubkeyAcceptedAlgorithms sm2
 FingerprintHash sm3
 
 ---
