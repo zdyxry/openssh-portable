@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 13
+%global openssh_release 14
 
 Name:           openssh
 Version:        8.8p1
@@ -455,6 +455,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu Dec 29 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-14
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:PubkeyAcceptedKeyTypes has been renamed to PubkeyAcceptedAlgorithms in openssh-8.5p1
+
 * Thu Dec 29 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-13
 - Type:bugfix
 - CVE:NA
