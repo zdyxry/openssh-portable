@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 11
+%global openssh_release 12
 
 Name:           openssh
 Version:        8.8p1
@@ -93,6 +93,14 @@ Patch62:        backport-upstream-better-debugging-for-connect_next.patch
 Patch63:        add-loongarch.patch
 Patch64:        backport-upstream-ssh-keygen-Y-check-novalidate-requires-name.patch
 Patch65:        openssh-Add-sw64-architecture.patch
+Patch66:        backport-upstream-if-sshpkt-functions-fail-then-password-is-n.patch
+Patch67:        backport-upstream-Make-sure-not-to-fclose-the-same-fd-twice-i.patch
+Patch68:        backport-upstream-Donot-attempt-to-fprintf-a-null-identity-co.patch
+Patch69:        backport-upstream-ignore-SIGPIPE-earlier-in-main-specifically.patch
+Patch70:        backport-upstream-Always-return-allocated-strings-from-the-ke.patch
+Patch71:        backport-Don-t-leak-the-strings-allocated-by-order_h.patch
+Patch72:        backport-Return-ERANGE-from-getcwd-if-buffer-size-is-1.patch
+Patch73:        backport-upstream-double-free-in-error-path-from-Eusgor-via-G.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -236,6 +244,14 @@ popd
 %patch63 -p1
 %patch64 -p1
 %patch65 -p1
+%patch66 -p1
+%patch67 -p1
+%patch68 -p1
+%patch69 -p1
+%patch70 -p1
+%patch71 -p1
+%patch72 -p1
+%patch73 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -437,6 +453,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu Dec 29 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-12
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:backport some upstream patches
+
 * Thu Dec 29 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-11
 - Type:requirement
 - CVE:NA

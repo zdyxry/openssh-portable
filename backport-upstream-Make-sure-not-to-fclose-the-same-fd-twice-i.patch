@@ -1,0 +1,63 @@
+From 17904f05802988d0bb9ed3c8d1d37411e8f459c3 Mon Sep 17 00:00:00 2001
+From: "tobhe@openbsd.org" <tobhe@openbsd.org>
+Date: Tue, 21 Jun 2022 14:52:13 +0000
+Subject: upstream: Make sure not to fclose() the same fd twice in case of an
+
+error.
+
+ok dtucker@
+
+OpenBSD-Commit-ID: e384c4e05d5521e7866b3d53ca59acd2a86eef99
+
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/patch/?id=17904f05802988d0bb9ed3c8d1d37411e8f459c3
+
+---
+ authfile.c | 19 ++++++++++++-------
+ 1 file changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/authfile.c b/authfile.c
+index 8990137..dce1e84 100644
+--- a/authfile.c
++++ b/authfile.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: authfile.c,v 1.141 2020/06/18 23:33:38 djm Exp $ */
++/* $OpenBSD: authfile.c,v 1.143 2022/06/21 14:52:13 tobhe Exp $ */
+ /*
+  * Copyright (c) 2000, 2013 Markus Friedl.  All rights reserved.
+  *
+@@ -515,20 +515,25 @@ sshkey_save_public(const struct sshkey *key, const char *path,
+ 		return SSH_ERR_SYSTEM_ERROR;
+ 	if ((f = fdopen(fd, "w")) == NULL) {
+ 		r = SSH_ERR_SYSTEM_ERROR;
++		close(fd);
+ 		goto fail;
+ 	}
+ 	if ((r = sshkey_write(key, f)) != 0)
+ 		goto fail;
+ 	fprintf(f, " %s\n", comment);
+-	if (ferror(f) || fclose(f) != 0) {
++	if (ferror(f)) {
+ 		r = SSH_ERR_SYSTEM_ERROR;
++		goto fail;
++	}
++	if (fclose(f) != 0) {
++		r = SSH_ERR_SYSTEM_ERROR;
++		f = NULL;
+  fail:
+-		oerrno = errno;
+-		if (f != NULL)
++		if (f != NULL) {
++			oerrno = errno;
+ 			fclose(f);
+-		else
+-			close(fd);
+-		errno = oerrno;
++			errno = oerrno;
++		}
+ 		return r;
+ 	}
+ 	return 0;
+-- 
+2.33.0
+
