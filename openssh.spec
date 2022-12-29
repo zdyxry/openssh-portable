@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 12
+%global openssh_release 13
 
 Name:           openssh
 Version:        8.8p1
@@ -101,6 +101,7 @@ Patch70:        backport-upstream-Always-return-allocated-strings-from-the-ke.pa
 Patch71:        backport-Don-t-leak-the-strings-allocated-by-order_h.patch
 Patch72:        backport-Return-ERANGE-from-getcwd-if-buffer-size-is-1.patch
 Patch73:        backport-upstream-double-free-in-error-path-from-Eusgor-via-G.patch
+Patch74:        add-strict-scp-check-for-CVE-2020-15778.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -252,6 +253,7 @@ popd
 %patch71 -p1
 %patch72 -p1
 %patch73 -p1
+%patch74 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -453,6 +455,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Thu Dec 29 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-13
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:add strict scp check for CVE-2020-15778
+
 * Thu Dec 29 2022 renmingshuai <renmingshuai@huawei.com> - 8.8p1-12
 - Type:bugfix
 - CVE:NA
