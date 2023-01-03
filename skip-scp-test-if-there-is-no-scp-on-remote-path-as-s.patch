@@ -1,0 +1,38 @@
+From e32af8efd8d36f8349761615b73cb3174e52134a Mon Sep 17 00:00:00 2001
+From: chengyechun <chengyechun1@huawei.com>
+Date: Thu, 5 Jan 2023 22:45:10 +0800
+Subject: [PATCH] skip scp test if there is no scp on remote path as scp3.sh
+ did
+
+---
+ regress/multiplex.sh | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/regress/multiplex.sh b/regress/multiplex.sh
+index 4744fa3..8ab0f59 100644
+--- a/regress/multiplex.sh
++++ b/regress/multiplex.sh
+@@ -67,11 +67,15 @@ echo "get ${DATA} ${COPY}" | \
+ test -f ${COPY}			|| fail "sftp: failed copy ${DATA}" 
+ cmp ${DATA} ${COPY}		|| fail "sftp: corrupted copy of ${DATA}"
+ 
+-rm -f ${COPY}
+-trace "scp transfer over multiplexed connection and check result"
+-${SCP} -S ${SSH} -F $OBJ/ssh_config -oControlPath=$CTL otherhost:${DATA} ${COPY} >>$TEST_REGRESS_LOGFILE 2>&1
+-test -f ${COPY}			|| fail "scp: failed copy ${DATA}" 
+-cmp ${DATA} ${COPY}		|| fail "scp: corrupted copy of ${DATA}"
++$SSH -F $OBJ/ssh_proxy somehost \
++    'IFS=":"; for i in $PATH;do [ -x "$i/scp" ] && exit 0; done; exit 1'
++if [ $? -eq 0 ]; then
++	rm -f ${COPY}
++	trace "scp transfer over multiplexed connection and check result"
++	${SCP} -S ${SSH} -F $OBJ/ssh_config -oControlPath=$CTL otherhost:${DATA} ${COPY} >>$TEST_REGRESS_LOGFILE 2>&1
++	test -f ${COPY}			|| fail "scp: failed copy ${DATA}" 
++	cmp ${DATA} ${COPY}		|| fail "scp: corrupted copy of ${DATA}"
++fi
+ 
+ rm -f ${COPY}
+ verbose "test $tid: forward"
+-- 
+2.23.0
+
