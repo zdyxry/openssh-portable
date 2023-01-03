@@ -1,0 +1,44 @@
+From 32ebaa0dbca5d0bb86e384e72bebc153f48413e4 Mon Sep 17 00:00:00 2001
+From: "djm@openbsd.org" <djm@openbsd.org>
+Date: Wed, 23 Feb 2022 11:18:13 +0000
+Subject: [PATCH] upstream: avoid integer overflow of auth attempts
+(harmless,caught by monitor)
+
+OpenBSD-Commit-ID: 488ad570b003b21e0cd9e7a00349cfc1003b4d86
+
+Reference:https://github.com/openssh/openssh-portable/commit/32ebaa0dbca5d0
+Conflict:NA
+---
+ auth2.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/auth2.c b/auth2.c
+index 7290d54..0de58e6 100644
+--- a/auth2.c
++++ b/auth2.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: auth2.c,v 1.161 2021/04/03 06:18:40 djm Exp $ */
++/* $OpenBSD: auth2.c,v 1.164 2022/02/23 11:18:13 djm Exp $ */
+ /*
+  * Copyright (c) 2000 Markus Friedl.  All rights reserved.
+  *
+@@ -290,6 +290,8 @@ if (options.check_user_splash)
+ 	if ((style = strchr(user, ':')) != NULL)
+ 		*style++ = 0;
+ 
++	if (authctxt->attempt >= 1024)
++		auth_maxtries_exceeded(ssh);
+ 	if (authctxt->attempt++ == 0) {
+ 		/* setup auth context */
+ 		authctxt->pw = PRIVSEP(getpwnamallow(ssh, user));
+@@ -298,6 +300,7 @@ if (options.check_user_splash)
+ 			authctxt->valid = 1;
+ 			debug2_f("setting up authctxt for %s", user);
+ 		} else {
++           authctxt->valid = 0;
+ 			/* Invalid user, fake password information */
+ 			authctxt->pw = fakepw();
+ 		}
+-- 
+2.23.0
+
