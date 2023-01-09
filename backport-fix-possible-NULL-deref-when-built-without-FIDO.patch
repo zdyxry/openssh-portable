@@ -1,0 +1,33 @@
+From 7d25b37fb2a5ff4dadabcbdac6087a97479434f5 Mon Sep 17 00:00:00 2001
+From: Damien Miller <djm@mindrot.org>
+Date: Fri, 24 Jun 2022 13:46:39 +1000
+Subject: [PATCH] fix possible NULL deref when built without FIDO
+
+Analysis/fix from kircher in bz3443; ok dtucker@
+
+Reference:https://github.com/openssh/openssh-portable/commit/7d25b37fb2a5ff
+Conflict:NA
+---
+ ssh-sk.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/ssh-sk.c b/ssh-sk.c
+index a1ff5cc4..ba514607 100644
+--- a/ssh-sk.c
++++ b/ssh-sk.c
+@@ -127,10 +127,11 @@ sshsk_open(const char *path)
+ 		ret->sk_enroll = ssh_sk_enroll;
+ 		ret->sk_sign = ssh_sk_sign;
+ 		ret->sk_load_resident_keys = ssh_sk_load_resident_keys;
++		return ret;
+ #else
+ 		error("internal security key support not enabled");
++		goto fail;
+ #endif
+-		return ret;
+ 	}
+ 	if ((ret->dlhandle = dlopen(path, RTLD_NOW)) == NULL) {
+ 		error("Provider \"%s\" dlopen failed: %s", path, dlerror());
+-- 
+2.23.0
+

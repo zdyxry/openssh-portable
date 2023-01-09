@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 16
+%global openssh_release 17
 
 Name:           openssh
 Version:        8.8p1
@@ -106,6 +106,7 @@ Patch75:        backport-upstream-avoid-integer-overflow-of-auth-attempts-har.pa
 Patch76:        backport-Skip-scp3-test-if-there-s-no-scp-on-remote-path.patch
 Patch77:        skip-scp-test-if-there-is-no-scp-on-remote-path-as-s.patch
 Patch78:        skip-tests-for-C-if-there-is-no-openssl-on-local-pat.patch
+Patch79:        backport-fix-possible-NULL-deref-when-built-without-FIDO.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -262,6 +263,7 @@ popd
 %patch76 -p1
 %patch77 -p1
 %patch78 -p1
+%patch79 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -460,6 +462,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Mon Jan 9 2023 renmingshuai <renmingshuai@huawei.com> - 8.8p1-17
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:fix possible NULL deref when built without FIDO
+
 * Tue Jan 3 2023 renmingshuai <renmingshuai@huawei.com> - 8.8p1-16
 - Type:bugfix
 - CVE:NA
