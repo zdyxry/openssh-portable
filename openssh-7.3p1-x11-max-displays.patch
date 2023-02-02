@@ -1,7 +1,19 @@
-diff -up openssh-7.4p1/channels.c.x11max openssh-7.4p1/channels.c
---- openssh-7.4p1/channels.c.x11max	2016-12-23 15:46:32.071506625 +0100
-+++ openssh-7.4p1/channels.c	2016-12-23 15:46:32.139506636 +0100
-@@ -152,8 +152,8 @@ static int all_opens_permitted = 0;
+Reference:https://src.fedoraproject.org/rpms/openssh/blob/rawhide/f/openssh-7.3p1-x11-max-displays.patch
+
+---
+ channels.c    | 23 ++++++++++++++---------
+ channels.h    |  2 +-
+ servconf.c    | 12 +++++++++++-
+ servconf.h    |  2 ++
+ session.c     |  5 +++--
+ sshd_config.5 |  7 +++++++
+ 6 files changed, 38 insertions(+), 13 deletions(-)
+
+diff --git a/channels.c b/channels.c
+index 7230540..040a4c6 100644
+--- a/channels.c
++++ b/channels.c
+@@ -101,8 +101,8 @@
  #define FWD_PERMIT_ANY_HOST	"*"
  
  /* -- X11 forwarding */
@@ -10,9 +22,9 @@ diff -up openssh-7.4p1/channels.c.x11max openssh-7.4p1/channels.c
 +/* Minimum port number for X11 forwarding */
 +#define X11_PORT_MIN 6000
  
- /* Per-channel callback for pre/post select() actions */
- typedef void chan_fn(struct ssh *, Channel *c,
-@@ -4228,7 +4228,7 @@ channel_send_window_changes(void)
+ /* Per-channel callback for pre/post IO actions */
+ typedef void chan_fn(struct ssh *, Channel *c);
+@@ -4801,7 +4801,7 @@ rdynamic_connect_finish(struct ssh *ssh, Channel *c)
   */
  int
  x11_create_display_inet(struct ssh *ssh, int x11_display_offset,
@@ -21,7 +33,7 @@ diff -up openssh-7.4p1/channels.c.x11max openssh-7.4p1/channels.c
      u_int *display_numberp, int **chanids)
  {
  	Channel *nc = NULL;
-@@ -4240,10 +4241,15 @@ x11_create_display_inet(int x11_display_
+@@ -4814,10 +4814,15 @@ x11_create_display_inet(struct ssh *ssh, int x11_display_offset,
  	if (chanids == NULL)
  		return -1;
  
@@ -39,7 +51,7 @@ diff -up openssh-7.4p1/channels.c.x11max openssh-7.4p1/channels.c
  		memset(&hints, 0, sizeof(hints));
  		hints.ai_family = ssh->chanctxt->IPv4or6;
  		hints.ai_flags = x11_use_localhost ? 0: AI_PASSIVE;
-@@ -4295,7 +4301,7 @@ x11_create_display_inet(int x11_display_
+@@ -4870,7 +4875,7 @@ x11_create_display_inet(struct ssh *ssh, int x11_display_offset,
  		if (num_socks > 0)
  			break;
  	}
@@ -48,7 +60,7 @@ diff -up openssh-7.4p1/channels.c.x11max openssh-7.4p1/channels.c
  		error("Failed to allocate internet-domain X11 display socket.");
  		return -1;
  	}
-@@ -4441,7 +4447,7 @@ x11_connect_display(void)
+@@ -5054,7 +5059,7 @@ x11_connect_display(struct ssh *ssh)
  	memset(&hints, 0, sizeof(hints));
  	hints.ai_family = ssh->chanctxt->IPv4or6;
  	hints.ai_socktype = SOCK_STREAM;
@@ -57,7 +69,7 @@ diff -up openssh-7.4p1/channels.c.x11max openssh-7.4p1/channels.c
  	if ((gaierr = getaddrinfo(buf, strport, &hints, &aitop)) != 0) {
  		error("%.100s: unknown host. (%s)", buf,
  		ssh_gai_strerror(gaierr));
-@@ -4457,7 +4463,7 @@ x11_connect_display(void)
+@@ -5070,7 +5075,7 @@ x11_connect_display(struct ssh *ssh)
  		/* Connect it to the display. */
  		if (connect(sock, ai->ai_addr, ai->ai_addrlen) == -1) {
  			debug2("connect %.100s port %u: %.100s", buf,
@@ -66,21 +78,20 @@ diff -up openssh-7.4p1/channels.c.x11max openssh-7.4p1/channels.c
  			close(sock);
  			continue;
  		}
-@@ -4466,8 +4472,8 @@ x11_connect_display(void)
- 	}
+@@ -5080,7 +5085,7 @@ x11_connect_display(struct ssh *ssh)
  	freeaddrinfo(aitop);
  	if (!ai) {
--		error("connect %.100s port %u: %.100s", buf,
+ 		error("connect %.100s port %u: %.100s", buf,
 -		    6000 + display_number, strerror(errno));
-+		error("connect %.100s port %u: %.100s", buf,
 +		    X11_PORT_MIN + display_number, strerror(errno));
  		return -1;
  	}
  	set_nodelay(sock);
-diff -up openssh-7.4p1/channels.h.x11max openssh-7.4p1/channels.h
---- openssh-7.4p1/channels.h.x11max	2016-12-19 05:59:41.000000000 +0100
-+++ openssh-7.4p1/channels.h	2016-12-23 15:46:32.139506636 +0100
-@@ -293,7 +293,7 @@ int	 permitopen_port(const char *);
+diff --git a/channels.h b/channels.h
+index 828c1b6..7d8a83e 100644
+--- a/channels.h
++++ b/channels.h
+@@ -361,7 +361,7 @@ int	 permitopen_port(const char *);
  
  void	 channel_set_x11_refuse_time(struct ssh *, u_int);
  int	 x11_connect_display(struct ssh *);
@@ -89,10 +100,11 @@ diff -up openssh-7.4p1/channels.h.x11max openssh-7.4p1/channels.h
  void	 x11_request_forwarding_with_spoofing(struct ssh *, int,
  	    const char *, const char *, const char *, int);
  
-diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
---- openssh-7.4p1/servconf.c.x11max	2016-12-23 15:46:32.133506635 +0100
-+++ openssh-7.4p1/servconf.c	2016-12-23 15:47:27.320519121 +0100
-@@ -95,6 +95,7 @@ initialize_server_options(ServerOptions
+diff --git a/servconf.c b/servconf.c
+index 13c4a08..fdba127 100644
+--- a/servconf.c
++++ b/servconf.c
+@@ -115,6 +115,7 @@ initialize_server_options(ServerOptions *options)
  	options->print_lastlog = -1;
  	options->x11_forwarding = -1;
  	options->x11_display_offset = -1;
@@ -100,7 +112,7 @@ diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
  	options->x11_use_localhost = -1;
  	options->permit_tty = -1;
  	options->permit_user_rc = -1;
-@@ -243,6 +244,8 @@ fill_default_server_options(ServerOption
+@@ -330,6 +331,8 @@ fill_default_server_options(ServerOptions *options)
  		options->x11_forwarding = 0;
  	if (options->x11_display_offset == -1)
  		options->x11_display_offset = 10;
@@ -109,7 +121,7 @@ diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
  	if (options->x11_use_localhost == -1)
  		options->x11_use_localhost = 1;
  	if (options->xauth_location == NULL)
-@@ -419,7 +422,7 @@ typedef enum {
+@@ -518,7 +521,7 @@ typedef enum {
  	sPasswordAuthentication,
  	sKbdInteractiveAuthentication, sListenAddress, sAddressFamily,
  	sPrintMotd, sPrintLastLog, sIgnoreRhosts,
@@ -118,7 +130,7 @@ diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
  	sPermitTTY, sStrictModes, sEmptyPasswd, sTCPKeepAlive,
  	sPermitUserEnvironment, sAllowTcpForwarding, sCompression,
  	sRekeyLimit, sAllowUsers, sDenyUsers, sAllowGroups, sDenyGroups,
-@@ -540,6 +543,7 @@ static struct {
+@@ -652,6 +655,7 @@ static struct {
  	{ "ignoreuserknownhosts", sIgnoreUserKnownHosts, SSHCFG_GLOBAL },
  	{ "x11forwarding", sX11Forwarding, SSHCFG_ALL },
  	{ "x11displayoffset", sX11DisplayOffset, SSHCFG_ALL },
@@ -126,7 +138,7 @@ diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
  	{ "x11uselocalhost", sX11UseLocalhost, SSHCFG_ALL },
  	{ "xauthlocation", sXAuthLocation, SSHCFG_GLOBAL },
  	{ "strictmodes", sStrictModes, SSHCFG_GLOBAL },
-@@ -1316,6 +1320,10 @@ process_server_config_line(ServerOptions
+@@ -1680,6 +1684,10 @@ process_server_config_line_depth(ServerOptions *options, char *line,
  			*intptr = value;
  		break;
  
@@ -137,7 +149,7 @@ diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
  	case sX11UseLocalhost:
  		intptr = &options->x11_use_localhost;
  		goto parse_flag;
-@@ -2063,6 +2071,7 @@ copy_set_server_options(ServerOptions *d
+@@ -2678,6 +2686,7 @@ copy_set_server_options(ServerOptions *dst, ServerOptions *src, int preauth)
  	M_CP_INTOPT(fwd_opts.streamlocal_bind_unlink);
  	M_CP_INTOPT(x11_display_offset);
  	M_CP_INTOPT(x11_forwarding);
@@ -145,7 +157,7 @@ diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
  	M_CP_INTOPT(x11_use_localhost);
  	M_CP_INTOPT(permit_tty);
  	M_CP_INTOPT(permit_user_rc);
-@@ -2315,6 +2324,7 @@ dump_config(ServerOptions *o)
+@@ -2953,6 +2962,7 @@ dump_config(ServerOptions *o)
  #endif
  	dump_cfg_int(sLoginGraceTime, o->login_grace_time);
  	dump_cfg_int(sX11DisplayOffset, o->x11_display_offset);
@@ -153,10 +165,11 @@ diff -up openssh-7.4p1/servconf.c.x11max openssh-7.4p1/servconf.c
  	dump_cfg_int(sMaxAuthTries, o->max_authtries);
  	dump_cfg_int(sMaxSessions, o->max_sessions);
  	dump_cfg_int(sClientAliveInterval, o->client_alive_interval);
-diff -up openssh-7.4p1/servconf.h.x11max openssh-7.4p1/servconf.h
---- openssh-7.4p1/servconf.h.x11max	2016-12-23 15:46:32.133506635 +0100
-+++ openssh-7.4p1/servconf.h	2016-12-23 15:46:32.140506636 +0100
-@@ -55,6 +55,7 @@
+diff --git a/servconf.h b/servconf.h
+index 37d3a6f..77fd779 100644
+--- a/servconf.h
++++ b/servconf.h
+@@ -45,6 +45,7 @@
  
  #define DEFAULT_AUTH_FAIL_MAX	6	/* Default for MaxAuthTries */
  #define DEFAULT_SESSIONS_MAX	10	/* Default for MaxSessions */
@@ -164,7 +177,7 @@ diff -up openssh-7.4p1/servconf.h.x11max openssh-7.4p1/servconf.h
  
  /* Magic name for internal sftp-server */
  #define INTERNAL_SFTP_NAME	"internal-sftp"
-@@ -85,6 +86,7 @@ typedef struct {
+@@ -105,6 +106,7 @@ typedef struct {
  	int     x11_forwarding;	/* If true, permit inet (spoofing) X11 fwd. */
  	int     x11_display_offset;	/* What DISPLAY number to start
  					 * searching at */
@@ -172,13 +185,14 @@ diff -up openssh-7.4p1/servconf.h.x11max openssh-7.4p1/servconf.h
  	int     x11_use_localhost;	/* If true, use localhost for fake X11 server. */
  	char   *xauth_location;	/* Location of xauth program */
  	int	permit_tty;	/* If false, deny pty allocation */
-diff -up openssh-7.4p1/session.c.x11max openssh-7.4p1/session.c
---- openssh-7.4p1/session.c.x11max	2016-12-23 15:46:32.136506636 +0100
-+++ openssh-7.4p1/session.c	2016-12-23 15:46:32.141506636 +0100
-@@ -2518,8 +2518,9 @@ session_setup_x11fwd(Session *s)
+diff --git a/session.c b/session.c
+index 6040d51..dd7d148 100644
+--- a/session.c
++++ b/session.c
+@@ -2612,8 +2612,9 @@ session_setup_x11fwd(struct ssh *ssh, Session *s)
  		return 0;
  	}
-	if (x11_create_display_inet(ssh, options.x11_display_offset,
+ 	if (x11_create_display_inet(ssh, options.x11_display_offset,
 -	    options.x11_use_localhost, s->single_connection,
 -	    &s->display_number, &s->x11_chanids) == -1) {
 +	    options.x11_use_localhost, options.x11_max_displays,
@@ -187,10 +201,11 @@ diff -up openssh-7.4p1/session.c.x11max openssh-7.4p1/session.c
  		debug("x11_create_display_inet failed.");
  		return 0;
  	}
-diff -up openssh-7.4p1/sshd_config.5.x11max openssh-7.4p1/sshd_config.5
---- openssh-7.4p1/sshd_config.5.x11max	2016-12-23 15:46:32.134506635 +0100
-+++ openssh-7.4p1/sshd_config.5	2016-12-23 15:46:32.141506636 +0100
-@@ -1133,6 +1133,7 @@ Available keywords are
+diff --git a/sshd_config.5 b/sshd_config.5
+index 4396b93..440fe92 100644
+--- a/sshd_config.5
++++ b/sshd_config.5
+@@ -1280,6 +1280,7 @@ Available keywords are
  .Cm StreamLocalBindUnlink ,
  .Cm TrustedUserCAKeys ,
  .Cm X11DisplayOffset ,
@@ -198,7 +213,7 @@ diff -up openssh-7.4p1/sshd_config.5.x11max openssh-7.4p1/sshd_config.5
  .Cm X11Forwarding
  and
  .Cm X11UseLocalhost .
-@@ -1566,6 +1567,12 @@ Specifies the first display number avail
+@@ -1847,6 +1848,12 @@ Specifies the first display number available for
  X11 forwarding.
  This prevents sshd from interfering with real X11 servers.
  The default is 10.
@@ -211,3 +226,6 @@ diff -up openssh-7.4p1/sshd_config.5.x11max openssh-7.4p1/sshd_config.5
  .It Cm X11Forwarding
  Specifies whether X11 forwarding is permitted.
  The argument must be
+-- 
+2.27.0
+

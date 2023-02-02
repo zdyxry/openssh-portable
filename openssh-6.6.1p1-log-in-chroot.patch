@@ -1,3 +1,4 @@
+Reference:https://src.fedoraproject.org/rpms/openssh/blob/rawhide/f/openssh-6.6.1p1-log-in-chroot.patch
 diff -up openssh-8.6p1/log.c.log-in-chroot openssh-8.6p1/log.c
 --- openssh-8.6p1/log.c.log-in-chroot	2021-04-16 05:55:25.000000000 +0200
 +++ openssh-8.6p1/log.c	2021-04-19 14:43:08.544843434 +0200
@@ -207,8 +208,8 @@ diff -up openssh-8.6p1/sftp-server.c.log-in-chroot openssh-8.6p1/sftp-server.c
 -sftp_server_main(int argc, char **argv, struct passwd *user_pw)
 +sftp_server_main(int argc, char **argv, struct passwd *user_pw, int reset_handler)
  {
- 	fd_set *rset, *wset;
- 	int i, r, in, out, max, ch, skipargs = 0, log_stderr = 0;
+	int i, r, in, out, ch, skipargs = 0, log_stderr = 0;
+	ssize_t len, olen;
 @@ -1657,7 +1657,7 @@ sftp_server_main(int argc, char **argv,
  	extern char *__progname;
  
