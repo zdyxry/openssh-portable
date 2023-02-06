@@ -1,16 +1,19 @@
-commit 0e22b79bfde45a7cf7a2e51a68ec11c4285f3b31
-Author: Jakub Jelen <jjelen@redhat.com>
-Date:   Mon Nov 21 15:04:06 2016 +0100
+Reference:https://src.fedoraproject.org/rpms/openssh/blob/rawhide/f/openssh-7.4p1-systemd.patch
 
-    systemd stuff
+---
+ configure.ac         | 24 ++++++++++++++++++++++++
+ contrib/sshd.service | 16 ++++++++++++++++
+ sshd.c               |  9 +++++++++
+ 3 files changed, 49 insertions(+)
+ create mode 100644 contrib/sshd.service
 
 diff --git a/configure.ac b/configure.ac
-index 2ffc369..162ce92 100644
+index bbe133e..6f7dc48 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -4265,6 +4265,30 @@ AC_ARG_WITH([kerberos5],
- AC_SUBST([GSSLIBS])
+@@ -4822,6 +4822,29 @@ AC_SUBST([GSSLIBS])
  AC_SUBST([K5LIBS])
+ AC_SUBST([CHANNELLIBS])
  
 +# Check whether user wants systemd support
 +SYSTEMD_MSG="no"
@@ -35,11 +38,10 @@ index 2ffc369..162ce92 100644
 +	fi ]
 +)
 +
-+
  # Looking for programs, paths and files
  
  PRIVSEP_PATH=/var/empty
-@@ -5097,6 +5121,7 @@ echo "                   libedit support: $LIBEDIT_MSG"
+@@ -5621,6 +5644,7 @@ echo "                   libldns support: $LDNS_MSG"
  echo "  Solaris process contract support: $SPC_MSG"
  echo "           Solaris project support: $SP_MSG"
  echo "         Solaris privilege support: $SPP_MSG"
@@ -70,10 +72,10 @@ index 0000000..e0d4923
 +WantedBy=multi-user.target
 +
 diff --git a/sshd.c b/sshd.c
-index 816611c..b8b9d13 100644
+index 0d4cfef..2a9b96d 100644
 --- a/sshd.c
 +++ b/sshd.c
-@@ -85,6 +85,10 @@
+@@ -88,6 +88,10 @@
  #include <prot.h>
  #endif
  
@@ -84,7 +86,7 @@ index 816611c..b8b9d13 100644
  #include "xmalloc.h"
  #include "ssh.h"
  #include "ssh2.h"
-@@ -1888,6 +1892,11 @@ main(int ac, char **av)
+@@ -2121,6 +2125,11 @@ main(int ac, char **av)
  			}
  		}
  
@@ -96,3 +98,6 @@ index 816611c..b8b9d13 100644
  		/* Accept a connection and return in a forked child */
  		server_accept_loop(&sock_in, &sock_out,
  		    &newsock, config_s);
+-- 
+2.27.0
+

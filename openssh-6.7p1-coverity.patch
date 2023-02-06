@@ -1,41 +1,38 @@
-diff -up openssh-8.5p1/addr.c.coverity openssh-8.5p1/addr.c
---- openssh-8.5p1/addr.c.coverity	2021-03-02 11:31:47.000000000 +0100
-+++ openssh-8.5p1/addr.c	2021-03-24 12:03:33.782968159 +0100
-@@ -312,8 +312,10 @@ addr_pton(const char *p, struct xaddr *n
- 	if (p == NULL || getaddrinfo(p, NULL, &hints, &ai) != 0)
- 		return -1;
- 
--	if (ai == NULL || ai->ai_addr == NULL)
-+	if (ai == NULL || ai->ai_addr == NULL) {
-+		freeaddrinfo(ai);
- 		return -1;
-+	}
- 
- 	if (n != NULL && addr_sa_to_xaddr(ai->ai_addr, ai->ai_addrlen,
- 	    n) == -1) {
-@@ -336,12 +338,16 @@ addr_sa_pton(const char *h, const char *
- 	if (h == NULL || getaddrinfo(h, s, &hints, &ai) != 0)
- 		return -1;
- 
--	if (ai == NULL || ai->ai_addr == NULL)
-+	if (ai == NULL || ai->ai_addr == NULL) {
-+		freeaddrinfo(ai);
- 		return -1;
-+	}
- 
- 	if (sa != NULL) {
--		if (slen < ai->ai_addrlen)
-+		if (slen < ai->ai_addrlen) {
-+			freeaddrinfo(ai);
- 			return -1;
-+		}
- 		memcpy(sa, &ai->ai_addr, ai->ai_addrlen);
- 	}
- 
-diff -up openssh-8.5p1/auth-krb5.c.coverity openssh-8.5p1/auth-krb5.c
---- openssh-8.5p1/auth-krb5.c.coverity	2021-03-24 12:03:33.724967756 +0100
-+++ openssh-8.5p1/auth-krb5.c	2021-03-24 12:03:33.782968159 +0100
-@@ -426,6 +426,7 @@ ssh_krb5_cc_new_unique(krb5_context ctx,
+Reference:https://src.fedoraproject.org/rpms/openssh/blob/rawhide/f/openssh-6.7p1-coverity.patch
+
+---
+ auth-krb5.c                   | 2 ++
+ auth-options.c                | 1 +
+ channels.c                    | 6 ++++--
+ dns.c                         | 1 +
+ gss-genr.c                    | 3 ++-
+ kexgssc.c                     | 4 +++-
+ krl.c                         | 4 ++++
+ loginrec.c                    | 4 ++++
+ misc.c                        | 3 +++
+ moduli.c                      | 1 +
+ monitor.c                     | 4 ++--
+ monitor_wrap.c                | 6 +++---
+ openbsd-compat/bindresvport.c | 2 +-
+ openbsd-compat/bsd-pselect.c  | 8 ++++----
+ readconf.c                    | 1 +
+ scp.c                         | 4 ++--
+ servconf.c                    | 5 +++--
+ serverloop.c                  | 2 +-
+ session.c                     | 2 ++
+ sftp.c                        | 3 ++-
+ ssh-agent.c                   | 5 +++--
+ ssh-keygen.c                  | 7 +++++++
+ ssh.c                         | 1 +
+ sshd.c                        | 9 +++++++--
+ sshsig.c                      | 1 +
+ 25 files changed, 65 insertions(+), 24 deletions(-)
+
+diff --git a/auth-krb5.c b/auth-krb5.c
+index d80c3ab..71ea1e3 100644
+--- a/auth-krb5.c
++++ b/auth-krb5.c
+@@ -426,6 +426,7 @@ ssh_krb5_cc_new_unique(krb5_context ctx, krb5_ccache *ccache, int *need_environm
  		umask(old_umask);
  		if (tmpfd == -1) {
  			logit("mkstemp(): %.100s", strerror(oerrno));
@@ -43,7 +40,7 @@ diff -up openssh-8.5p1/auth-krb5.c.coverity openssh-8.5p1/auth-krb5.c
  			return oerrno;
  		}
  
-@@ -433,6 +434,7 @@ ssh_krb5_cc_new_unique(krb5_context ctx,
+@@ -433,6 +434,7 @@ ssh_krb5_cc_new_unique(krb5_context ctx, krb5_ccache *ccache, int *need_environm
  			oerrno = errno;
  			logit("fchmod(): %.100s", strerror(oerrno));
  			close(tmpfd);
@@ -51,10 +48,11 @@ diff -up openssh-8.5p1/auth-krb5.c.coverity openssh-8.5p1/auth-krb5.c
  			return oerrno;
  		}
  		/* make sure the KRB5CCNAME is set for non-standard location */
-diff -up openssh-8.5p1/auth-options.c.coverity openssh-8.5p1/auth-options.c
---- openssh-8.5p1/auth-options.c.coverity	2021-03-02 11:31:47.000000000 +0100
-+++ openssh-8.5p1/auth-options.c	2021-03-24 12:03:33.782968159 +0100
-@@ -706,6 +708,7 @@ serialise_array(struct sshbuf *m, char *
+diff --git a/auth-options.c b/auth-options.c
+index 7cb2a64..a4b1db4 100644
+--- a/auth-options.c
++++ b/auth-options.c
+@@ -723,6 +723,7 @@ serialise_array(struct sshbuf *m, char **a, size_t n)
  		return r;
  	}
  	/* success */
@@ -62,19 +60,11 @@ diff -up openssh-8.5p1/auth-options.c.coverity openssh-8.5p1/auth-options.c
  	return 0;
  }
  
-diff -up openssh-7.4p1/channels.c.coverity openssh-7.4p1/channels.c
---- openssh-7.4p1/channels.c.coverity	2016-12-23 16:40:26.881788686 +0100
-+++ openssh-7.4p1/channels.c	2016-12-23 16:42:36.244818763 +0100
-@@ -1875,7 +1875,7 @@ channel_post_connecting(struct ssh *ssh,
- 		debug("channel %d: connection failed: %s",
- 		    c->self, strerror(err));
- 		/* Try next address, if any */
--		if ((sock = connect_next(&c->connect_ctx)) > 0) {
-+		if ((sock = connect_next(&c->connect_ctx)) >= 0) {
- 			close(c->sock);
- 			c->sock = c->rfd = c->wfd = sock;
- 			channel_find_maxfd(ssh->chanctxt);
-@@ -3804,7 +3804,7 @@ int
+diff --git a/channels.c b/channels.c
+index 300c753..ea4d8da 100644
+--- a/channels.c
++++ b/channels.c
+@@ -4081,7 +4081,7 @@ int
  channel_request_remote_forwarding(struct ssh *ssh, struct Forward *fwd)
  {
  	int r, success = 0, idx = -1;
@@ -83,7 +73,7 @@ diff -up openssh-7.4p1/channels.c.coverity openssh-7.4p1/channels.c
  	int port_to_connect, listen_port;
  
  	/* Send the forward request to the remote side. */
-@@ -3832,7 +3832,6 @@ channel_request_remote_forwarding(struct
+@@ -4109,7 +4109,6 @@ channel_request_remote_forwarding(struct ssh *ssh, struct Forward *fwd)
  	success = 1;
  	if (success) {
  		/* Record that connection to this host/port is permitted. */
@@ -91,7 +81,7 @@ diff -up openssh-7.4p1/channels.c.coverity openssh-7.4p1/channels.c
  		port_to_connect = listen_port = 0;
  		if (fwd->connect_path != NULL) {
  			host_to_connect = xstrdup(fwd->connect_path);
-@@ -3853,6 +3852,9 @@ channel_request_remote_forwarding(struct
+@@ -4130,6 +4129,9 @@ channel_request_remote_forwarding(struct ssh *ssh, struct Forward *fwd)
  		    host_to_connect, port_to_connect,
  		    listen_host, listen_path, listen_port, NULL);
  	}
@@ -101,37 +91,23 @@ diff -up openssh-7.4p1/channels.c.coverity openssh-7.4p1/channels.c
  	return idx;
  }
  
-diff -up openssh-8.5p1/compat.c.coverity openssh-8.5p1/compat.c
---- openssh-8.5p1/compat.c.coverity	2021-03-24 12:03:33.768968062 +0100
-+++ openssh-8.5p1/compat.c	2021-03-24 12:03:33.783968166 +0100
-@@ -191,10 +191,12 @@ compat_kex_proposal(struct ssh *ssh, cha
- 		return p;
- 	debug2_f("original KEX proposal: %s", p);
- 	if ((ssh->compat & SSH_BUG_CURVE25519PAD) != 0)
-+		/* coverity[overwrite_var : FALSE] */
- 		if ((p = match_filter_denylist(p,
- 		    "curve25519-sha256@libssh.org")) == NULL)
- 			fatal("match_filter_denylist failed");
- 	if ((ssh->compat & SSH_OLD_DHGEX) != 0) {
-+		/* coverity[overwrite_var : FALSE] */
- 		if ((p = match_filter_denylist(p,
- 		    "diffie-hellman-group-exchange-sha256,"
- 		    "diffie-hellman-group-exchange-sha1")) == NULL)
-diff -up openssh-8.5p1/dns.c.coverity openssh-8.5p1/dns.c
---- openssh-8.5p1/dns.c.coverity	2021-03-02 11:31:47.000000000 +0100
-+++ openssh-8.5p1/dns.c	2021-03-24 12:03:33.783968166 +0100
-@@ -282,6 +282,7 @@ verify_host_key_dns(const char *hostname
-		    &hostkey_digest, &hostkey_digest_len, hostkey)) {
-			error("Error calculating key fingerprint.");
-			freerrset(fingerprints);
+diff --git a/dns.c b/dns.c
+index f2310be..15218f1 100644
+--- a/dns.c
++++ b/dns.c
+@@ -259,6 +259,7 @@ verify_host_key_dns(const char *hostname, struct sockaddr *address,
+ 		    &hostkey_digest, &hostkey_digest_len, hostkey)) {
+ 			error("Error calculating key fingerprint.");
+ 			freerrset(fingerprints);
 +				free(dnskey_digest);
-			return -1;
-		}
-
-diff -up openssh-8.5p1/gss-genr.c.coverity openssh-8.5p1/gss-genr.c
---- openssh-8.5p1/gss-genr.c.coverity	2021-03-26 11:52:46.613942552 +0100
-+++ openssh-8.5p1/gss-genr.c	2021-03-26 11:54:37.881726318 +0100
-@@ -167,8 +167,9 @@ ssh_gssapi_kex_mechs(gss_OID_set gss_sup
+ 			return -1;
+ 		}
+ 
+diff --git a/gss-genr.c b/gss-genr.c
+index 9f9745b..810b382 100644
+--- a/gss-genr.c
++++ b/gss-genr.c
+@@ -168,8 +168,9 @@ ssh_gssapi_kex_mechs(gss_OID_set gss_supported, ssh_gssapi_check_fn *check,
  			enclen = __b64_ntop(digest,
  			    ssh_digest_bytes(SSH_DIGEST_MD5), encoded,
  			    ssh_digest_bytes(SSH_DIGEST_MD5) * 2);
@@ -142,9 +118,10 @@ diff -up openssh-8.5p1/gss-genr.c.coverity openssh-8.5p1/gss-genr.c
  			for ((p = strsep(&cp, ",")); p && *p != '\0';
  				(p = strsep(&cp, ","))) {
  				if (sshbuf_len(buf) != 0 &&
-diff -up openssh-8.5p1/kexgssc.c.coverity openssh-8.5p1/kexgssc.c
---- openssh-8.5p1/kexgssc.c.coverity	2021-03-24 12:03:33.711967665 +0100
-+++ openssh-8.5p1/kexgssc.c	2021-03-24 12:03:33.783968166 +0100
+diff --git a/kexgssc.c b/kexgssc.c
+index 1c62740..080cf04 100644
+--- a/kexgssc.c
++++ b/kexgssc.c
 @@ -98,8 +98,10 @@ kexgss_client(struct ssh *ssh)
  	default:
  		fatal_f("Unexpected KEX type %d", kex->kex_type);
@@ -157,10 +134,11 @@ diff -up openssh-8.5p1/kexgssc.c.coverity openssh-8.5p1/kexgssc.c
  
  	token_ptr = GSS_C_NO_BUFFER;
  
-diff -up openssh-8.5p1/krl.c.coverity openssh-8.5p1/krl.c
---- openssh-8.5p1/krl.c.coverity	2021-03-02 11:31:47.000000000 +0100
-+++ openssh-8.5p1/krl.c	2021-03-24 12:03:33.783968166 +0100
-@@ -1209,6 +1209,7 @@ ssh_krl_from_blob(struct sshbuf *buf, st
+diff --git a/krl.c b/krl.c
+index 473a9d7..ae19762 100644
+--- a/krl.c
++++ b/krl.c
+@@ -1209,6 +1209,7 @@ ssh_krl_from_blob(struct sshbuf *buf, struct ssh_krl **krlp,
  	sshkey_free(key);
  	sshbuf_free(copy);
  	sshbuf_free(sect);
@@ -168,7 +146,7 @@ diff -up openssh-8.5p1/krl.c.coverity openssh-8.5p1/krl.c
  	return r;
  }
  
-@@ -1261,6 +1262,7 @@ is_key_revoked(struct ssh_krl *krl, cons
+@@ -1261,6 +1262,7 @@ is_key_revoked(struct ssh_krl *krl, const struct sshkey *key)
  		return r;
  	erb = RB_FIND(revoked_blob_tree, &krl->revoked_sha1s, &rb);
  	free(rb.blob);
@@ -176,7 +154,7 @@ diff -up openssh-8.5p1/krl.c.coverity openssh-8.5p1/krl.c
  	if (erb != NULL) {
  		KRL_DBG(("revoked by key SHA1"));
  		return SSH_ERR_KEY_REVOKED;
-@@ -1271,6 +1273,7 @@ is_key_revoked(struct ssh_krl *krl, cons
+@@ -1271,6 +1273,7 @@ is_key_revoked(struct ssh_krl *krl, const struct sshkey *key)
  		return r;
  	erb = RB_FIND(revoked_blob_tree, &krl->revoked_sha256s, &rb);
  	free(rb.blob);
@@ -184,7 +162,7 @@ diff -up openssh-8.5p1/krl.c.coverity openssh-8.5p1/krl.c
  	if (erb != NULL) {
  		KRL_DBG(("revoked by key SHA256"));
  		return SSH_ERR_KEY_REVOKED;
-@@ -1282,6 +1285,7 @@ is_key_revoked(struct ssh_krl *krl, cons
+@@ -1282,6 +1285,7 @@ is_key_revoked(struct ssh_krl *krl, const struct sshkey *key)
  		return r;
  	erb = RB_FIND(revoked_blob_tree, &krl->revoked_keys, &rb);
  	free(rb.blob);
@@ -192,10 +170,11 @@ diff -up openssh-8.5p1/krl.c.coverity openssh-8.5p1/krl.c
  	if (erb != NULL) {
  		KRL_DBG(("revoked by explicit key"));
  		return SSH_ERR_KEY_REVOKED;
-diff -up openssh-8.5p1/loginrec.c.coverity openssh-8.5p1/loginrec.c
---- openssh-8.5p1/loginrec.c.coverity	2021-03-24 13:18:53.793225885 +0100
-+++ openssh-8.5p1/loginrec.c	2021-03-24 13:21:27.948404751 +0100
-@@ -690,9 +690,11 @@ construct_utmp(struct logininfo *li,
+diff --git a/loginrec.c b/loginrec.c
+index 4f21499..e0606be 100644
+--- a/loginrec.c
++++ b/loginrec.c
+@@ -691,9 +691,11 @@ construct_utmp(struct logininfo *li,
  	 */
  
  	/* Use strncpy because we don't necessarily want null termination */
@@ -207,7 +186,7 @@ diff -up openssh-8.5p1/loginrec.c.coverity openssh-8.5p1/loginrec.c
  	strncpy(ut->ut_host, li->hostname,
  	    MIN_SIZEOF(ut->ut_host, li->hostname));
  # endif
-@@ -1690,6 +1692,7 @@ record_failed_login(struct ssh *ssh, con
+@@ -1691,6 +1693,7 @@ record_failed_login(struct ssh *ssh, const char *username, const char *hostname,
  
  	memset(&ut, 0, sizeof(ut));
  	/* strncpy because we don't necessarily want nul termination */
@@ -215,7 +194,7 @@ diff -up openssh-8.5p1/loginrec.c.coverity openssh-8.5p1/loginrec.c
  	strncpy(ut.ut_user, username, sizeof(ut.ut_user));
  	strlcpy(ut.ut_line, "ssh:notty", sizeof(ut.ut_line));
  
-@@ -1699,6 +1702,7 @@ record_failed_login(struct ssh *ssh, con
+@@ -1700,6 +1703,7 @@ record_failed_login(struct ssh *ssh, const char *username, const char *hostname,
  	ut.ut_pid = getpid();
  
  	/* strncpy because we don't necessarily want nul termination */
@@ -223,10 +202,11 @@ diff -up openssh-8.5p1/loginrec.c.coverity openssh-8.5p1/loginrec.c
  	strncpy(ut.ut_host, hostname, sizeof(ut.ut_host));
  
  	if (ssh_packet_connection_is_on_socket(ssh) &&
-diff -up openssh-8.5p1/misc.c.coverity openssh-8.5p1/misc.c
---- openssh-8.5p1/misc.c.coverity	2021-03-24 12:03:33.745967902 +0100
-+++ openssh-8.5p1/misc.c	2021-03-24 13:31:47.037079617 +0100
-@@ -1425,6 +1425,8 @@ sanitise_stdfd(void)
+diff --git a/misc.c b/misc.c
+index e4d3120..5420e24 100644
+--- a/misc.c
++++ b/misc.c
+@@ -1492,6 +1492,8 @@ sanitise_stdfd(void)
  	}
  	if (nullfd > STDERR_FILENO)
  		close(nullfd);
@@ -235,7 +215,7 @@ diff -up openssh-8.5p1/misc.c.coverity openssh-8.5p1/misc.c
  }
  
  char *
-@@ -2511,6 +2513,7 @@ stdfd_devnull(int do_stdin, int do_stdou
+@@ -2625,6 +2627,7 @@ stdfd_devnull(int do_stdin, int do_stdout, int do_stderr)
  	}
  	if (devnull > STDERR_FILENO)
  		close(devnull);
@@ -243,10 +223,11 @@ diff -up openssh-8.5p1/misc.c.coverity openssh-8.5p1/misc.c
  	return ret;
  }
  
-diff -up openssh-8.5p1/moduli.c.coverity openssh-8.5p1/moduli.c
---- openssh-8.5p1/moduli.c.coverity	2021-03-02 11:31:47.000000000 +0100
-+++ openssh-8.5p1/moduli.c	2021-03-24 12:03:33.784968173 +0100
-@@ -476,6 +476,7 @@ write_checkpoint(char *cpfile, u_int32_t
+diff --git a/moduli.c b/moduli.c
+index 9f660ef..2669edd 100644
+--- a/moduli.c
++++ b/moduli.c
+@@ -476,6 +476,7 @@ write_checkpoint(char *cpfile, u_int32_t lineno)
  	else
  		logit("failed to write to checkpoint file '%s': %s", cpfile,
  		    strerror(errno));
@@ -254,10 +235,11 @@ diff -up openssh-8.5p1/moduli.c.coverity openssh-8.5p1/moduli.c
  }
  
  static unsigned long
-diff -up openssh-7.4p1/monitor.c.coverity openssh-7.4p1/monitor.c
---- openssh-7.4p1/monitor.c.coverity	2016-12-23 16:40:26.888788688 +0100
-+++ openssh-7.4p1/monitor.c	2016-12-23 16:40:26.900788691 +0100
-@@ -411,7 +411,7 @@ monitor_child_preauth(Authctxt *_authctx
+diff --git a/monitor.c b/monitor.c
+index fc05db6..dca2fe7 100644
+--- a/monitor.c
++++ b/monitor.c
+@@ -397,7 +397,7 @@ monitor_child_preauth(struct ssh *ssh, struct monitor *pmonitor)
  	mm_get_keystate(ssh, pmonitor);
  
  	/* Drain any buffered messages from the child */
@@ -266,7 +248,7 @@ diff -up openssh-7.4p1/monitor.c.coverity openssh-7.4p1/monitor.c
  		;
  
  	if (pmonitor->m_recvfd >= 0)
-@@ -1678,7 +1678,7 @@ mm_answer_pty(struct ssh *ssh, int sock,
+@@ -1684,7 +1684,7 @@ mm_answer_pty(struct ssh *ssh, int sock, struct sshbuf *m)
  	s->ptymaster = s->ptyfd;
  
  	debug3_f("tty %s ptyfd %d", s->tty, s->ttyfd);
@@ -275,10 +257,11 @@ diff -up openssh-7.4p1/monitor.c.coverity openssh-7.4p1/monitor.c
  	return (0);
  
   error:
-diff -up openssh-7.4p1/monitor_wrap.c.coverity openssh-7.4p1/monitor_wrap.c
---- openssh-7.4p1/monitor_wrap.c.coverity	2016-12-23 16:40:26.892788689 +0100
-+++ openssh-7.4p1/monitor_wrap.c	2016-12-23 16:40:26.900788691 +0100
-@@ -525,10 +525,10 @@ mm_pty_allocate(int *ptyfd, int *ttyfd,
+diff --git a/monitor_wrap.c b/monitor_wrap.c
+index e125eca..c394d68 100644
+--- a/monitor_wrap.c
++++ b/monitor_wrap.c
+@@ -612,10 +612,10 @@ mm_pty_allocate(int *ptyfd, int *ttyfd, char *namebuf, size_t namebuflen)
  	if ((tmp1 = dup(pmonitor->m_recvfd)) == -1 ||
  	    (tmp2 = dup(pmonitor->m_recvfd)) == -1) {
  		error_f("cannot allocate fds for pty");
@@ -292,10 +275,11 @@ diff -up openssh-7.4p1/monitor_wrap.c.coverity openssh-7.4p1/monitor_wrap.c
  		return 0;
  	}
  	close(tmp1);
-diff -up openssh-7.4p1/openbsd-compat/bindresvport.c.coverity openssh-7.4p1/openbsd-compat/bindresvport.c
---- openssh-7.4p1/openbsd-compat/bindresvport.c.coverity	2016-12-19 05:59:41.000000000 +0100
-+++ openssh-7.4p1/openbsd-compat/bindresvport.c	2016-12-23 16:40:26.901788691 +0100
-@@ -58,7 +58,7 @@ bindresvport_sa(int sd, struct sockaddr
+diff --git a/openbsd-compat/bindresvport.c b/openbsd-compat/bindresvport.c
+index 346c7fe..f42792f 100644
+--- a/openbsd-compat/bindresvport.c
++++ b/openbsd-compat/bindresvport.c
+@@ -59,7 +59,7 @@ bindresvport_sa(int sd, struct sockaddr *sa)
  	struct sockaddr_in6 *in6;
  	u_int16_t *portp;
  	u_int16_t port;
@@ -304,9 +288,10 @@ diff -up openssh-7.4p1/openbsd-compat/bindresvport.c.coverity openssh-7.4p1/open
  	int i;
  
  	if (sa == NULL) {
-diff -up openssh-8.7p1/openbsd-compat/bsd-pselect.c.coverity openssh-8.7p1/openbsd-compat/bsd-pselect.c
---- openssh-8.7p1/openbsd-compat/bsd-pselect.c.coverity	2021-08-30 16:36:11.357288009 +0200
-+++ openssh-8.7p1/openbsd-compat/bsd-pselect.c	2021-08-30 16:37:21.791897976 +0200
+diff --git a/openbsd-compat/bsd-pselect.c b/openbsd-compat/bsd-pselect.c
+index b363208..cf7157c 100644
+--- a/openbsd-compat/bsd-pselect.c
++++ b/openbsd-compat/bsd-pselect.c
 @@ -113,13 +113,13 @@ pselect_notify_setup(void)
  static void
  pselect_notify_parent(void)
@@ -334,10 +319,11 @@ diff -up openssh-8.7p1/openbsd-compat/bsd-pselect.c.coverity openssh-8.7p1/openb
  			debug2_f("reading");
  		FD_CLR(notify_pipe[0], readset);
  	}
-diff -up openssh-8.5p1/readconf.c.coverity openssh-8.5p1/readconf.c
---- openssh-8.5p1/readconf.c.coverity	2021-03-24 12:03:33.778968131 +0100
-+++ openssh-8.5p1/readconf.c	2021-03-24 12:03:33.785968180 +0100
-@@ -1847,6 +1847,7 @@ parse_pubkey_algos:
+diff --git a/readconf.c b/readconf.c
+index 1e1b78d..b6c998e 100644
+--- a/readconf.c
++++ b/readconf.c
+@@ -1933,6 +1933,7 @@ parse_pubkey_algos:
  			} else if (r != 0) {
  				error("%.200s line %d: glob failed for %s.",
  				    filename, linenum, arg2);
@@ -345,10 +331,11 @@ diff -up openssh-8.5p1/readconf.c.coverity openssh-8.5p1/readconf.c
  				goto out;
  			}
  			free(arg2);
-diff -up openssh-8.7p1/scp.c.coverity openssh-8.7p1/scp.c
---- openssh-8.7p1/scp.c.coverity	2021-08-30 16:23:35.389741329 +0200
-+++ openssh-8.7p1/scp.c	2021-08-30 16:27:04.854555296 +0200
-@@ -186,11 +186,11 @@ killchild(int signo)
+diff --git a/scp.c b/scp.c
+index 6146260..74f5b10 100644
+--- a/scp.c
++++ b/scp.c
+@@ -187,11 +187,11 @@ killchild(int signo)
  {
  	if (do_cmd_pid > 1) {
  		kill(do_cmd_pid, signo ? signo : SIGTERM);
@@ -362,10 +349,11 @@ diff -up openssh-8.7p1/scp.c.coverity openssh-8.7p1/scp.c
  	}
  
  	if (signo)
-diff -up openssh-7.4p1/servconf.c.coverity openssh-7.4p1/servconf.c
---- openssh-7.4p1/servconf.c.coverity	2016-12-23 16:40:26.896788690 +0100
-+++ openssh-7.4p1/servconf.c	2016-12-23 16:40:26.901788691 +0100
-@@ -1638,8 +1638,9 @@ process_server_config_line(ServerOptions
+diff --git a/servconf.c b/servconf.c
+index 8b9540d..d72fb62 100644
+--- a/servconf.c
++++ b/servconf.c
+@@ -2081,8 +2081,9 @@ process_server_config_line_depth(ServerOptions *options, char *line,
  		if (*activep && *charptr == NULL) {
  			*charptr = tilde_expand_filename(arg, getuid());
  			/* increase optional counter */
@@ -377,10 +365,11 @@ diff -up openssh-7.4p1/servconf.c.coverity openssh-7.4p1/servconf.c
  		}
  		break;
  
-diff -up openssh-8.7p1/serverloop.c.coverity openssh-8.7p1/serverloop.c
---- openssh-8.7p1/serverloop.c.coverity	2021-08-20 06:03:49.000000000 +0200
-+++ openssh-8.7p1/serverloop.c	2021-08-30 16:28:22.416226981 +0200
-@@ -547,7 +547,7 @@ server_request_tun(struct ssh *ssh)
+diff --git a/serverloop.c b/serverloop.c
+index b4c0d82..62c7e90 100644
+--- a/serverloop.c
++++ b/serverloop.c
+@@ -546,7 +546,7 @@ server_request_tun(struct ssh *ssh)
  		debug_f("invalid tun");
  		goto done;
  	}
@@ -389,10 +378,11 @@ diff -up openssh-8.7p1/serverloop.c.coverity openssh-8.7p1/serverloop.c
  		if (tun != SSH_TUNID_ANY &&
  		    auth_opts->force_tun_device != (int)tun)
  			goto done;
-diff -up openssh-8.5p1/session.c.coverity openssh-8.5p1/session.c
---- openssh-8.5p1/session.c.coverity	2021-03-24 12:03:33.777968124 +0100
-+++ openssh-8.5p1/session.c	2021-03-24 12:03:33.786968187 +0100
-@@ -1223,12 +1223,14 @@ do_setup_env(struct ssh *ssh, Session *s
+diff --git a/session.c b/session.c
+index 58cf557..cdb301b 100644
+--- a/session.c
++++ b/session.c
+@@ -1222,12 +1222,14 @@ do_setup_env(struct ssh *ssh, Session *s, const char *shell)
  	/* Environment specified by admin */
  	for (i = 0; i < options.num_setenv; i++) {
  		cp = xstrdup(options.setenv[i]);
@@ -407,10 +397,11 @@ diff -up openssh-8.5p1/session.c.coverity openssh-8.5p1/session.c
  	}
  
  	/* SSH_CLIENT deprecated */
-diff -up openssh-7.4p1/sftp.c.coverity openssh-7.4p1/sftp.c
---- openssh-7.4p1/sftp.c.coverity	2016-12-19 05:59:41.000000000 +0100
-+++ openssh-7.4p1/sftp.c	2016-12-23 16:40:26.903788691 +0100
-@@ -224,7 +224,7 @@ killchild(int signo)
+diff --git a/sftp.c b/sftp.c
+index c3c347e..c18a354 100644
+--- a/sftp.c
++++ b/sftp.c
+@@ -226,7 +226,7 @@ killchild(int signo)
  	pid = sshpid;
  	if (pid > 1) {
  		kill(pid, SIGTERM);
@@ -419,16 +410,7 @@ diff -up openssh-7.4p1/sftp.c.coverity openssh-7.4p1/sftp.c
  	}
  
  	_exit(1);
-@@ -762,6 +762,8 @@ process_put(struct sftp_conn *conn, cons
- 			    fflag || global_fflag) == -1)
- 				err = -1;
- 		}
-+		free(abs_dst);
-+		abs_dst = NULL;
- 	}
- 
- out:
-@@ -985,6 +987,7 @@ do_globbed_ls(struct sftp_conn *conn, co
+@@ -1029,6 +1029,7 @@ do_globbed_ls(struct sftp_conn *conn, const char *path,
  		if (lflag & LS_LONG_VIEW) {
  			if (g.gl_statv[i] == NULL) {
  				error("no stat information for %s", fname);
@@ -436,21 +418,11 @@ diff -up openssh-7.4p1/sftp.c.coverity openssh-7.4p1/sftp.c
  				continue;
  			}
  			lname = ls_file(fname, g.gl_statv[i], 1,
-diff -up openssh-8.5p1/sk-usbhid.c.coverity openssh-8.5p1/sk-usbhid.c
---- openssh-8.5p1/sk-usbhid.c.coverity	2021-03-02 11:31:47.000000000 +0100
-+++ openssh-8.5p1/sk-usbhid.c	2021-03-24 12:03:33.786968187 +0100
-@@ -1256,6 +1256,7 @@ sk_load_resident_keys(const char *pin, s
- 		freezero(rks[i], sizeof(*rks[i]));
- 	}
- 	free(rks);
-+	free(device);
- 	return ret;
- }
- 
-diff -up openssh-7.4p1/ssh-agent.c.coverity openssh-7.4p1/ssh-agent.c
---- openssh-7.4p1/ssh-agent.c.coverity	2016-12-19 05:59:41.000000000 +0100
-+++ openssh-7.4p1/ssh-agent.c	2016-12-23 16:40:26.903788691 +0100
-@@ -869,6 +869,7 @@ sanitize_pkcs11_provider(const char *pro
+diff --git a/ssh-agent.c b/ssh-agent.c
+index 50d0638..a292a9e 100644
+--- a/ssh-agent.c
++++ b/ssh-agent.c
+@@ -1391,6 +1391,7 @@ sanitize_pkcs11_provider(const char *provider)
  
  		if (pkcs11_uri_parse(provider, uri) != 0) {
  			error("Failed to parse PKCS#11 URI");
@@ -458,7 +430,7 @@ diff -up openssh-7.4p1/ssh-agent.c.coverity openssh-7.4p1/ssh-agent.c
  			return NULL;
  		}
  		/* validate also provider from URI */
-@@ -1220,8 +1220,8 @@ main(int ac, char **av)
+@@ -2080,8 +2081,8 @@ main(int ac, char **av)
  	sanitise_stdfd();
  
  	/* drop */
@@ -469,10 +441,43 @@ diff -up openssh-7.4p1/ssh-agent.c.coverity openssh-7.4p1/ssh-agent.c
  
  	platform_disable_tracing(0);	/* strict=no */
  
-diff -up openssh-8.5p1/ssh.c.coverity openssh-8.5p1/ssh.c
---- openssh-8.5p1/ssh.c.coverity	2021-03-24 12:03:33.779968138 +0100
-+++ openssh-8.5p1/ssh.c	2021-03-24 12:03:33.786968187 +0100
-@@ -1746,6 +1746,7 @@ control_persist_detach(void)
+diff --git a/ssh-keygen.c b/ssh-keygen.c
+index 6ae72ab..076dd33 100644
+--- a/ssh-keygen.c
++++ b/ssh-keygen.c
+@@ -2365,6 +2365,9 @@ update_krl_from_file(struct passwd *pw, const char *file, int wild_ca,
+ 			r = ssh_krl_revoke_key_sha256(krl, blob, blen);
+ 			if (r != 0)
+ 				fatal_fr(r, "revoke key failed");
++			freezero(blob, blen);
++			blob = NULL;
++			blen = 0;
+ 		} else {
+ 			if (strncasecmp(cp, "key:", 4) == 0) {
+ 				cp += 4;
+@@ -3023,6 +3026,7 @@ do_moduli_screen(const char *out_file, char **opts, size_t nopts)
+ 		} else if (strncmp(opts[i], "start-line=", 11) == 0) {
+ 			start_lineno = strtoul(opts[i]+11, NULL, 10);
+ 		} else if (strncmp(opts[i], "checkpoint=", 11) == 0) {
++			free(checkpoint);
+ 			checkpoint = xstrdup(opts[i]+11);
+ 		} else if (strncmp(opts[i], "generator=", 10) == 0) {
+ 			generator_wanted = (u_int32_t)strtonum(
+@@ -3064,6 +3068,9 @@ do_moduli_screen(const char *out_file, char **opts, size_t nopts)
+ #else /* WITH_OPENSSL */
+ 	fatal("Moduli screening is not supported");
+ #endif /* WITH_OPENSSL */
++	free(checkpoint);
++	if (in != stdin)
++		fclose(in);
+ }
+ 
+ /* Read and confirm a passphrase */
+diff --git a/ssh.c b/ssh.c
+index a5155f4..68558d4 100644
+--- a/ssh.c
++++ b/ssh.c
+@@ -1755,6 +1755,7 @@ control_persist_detach(void)
  		close(muxserver_sock);
  		muxserver_sock = -1;
  		options.control_master = SSHCTL_MASTER_NO;
@@ -480,10 +485,11 @@ diff -up openssh-8.5p1/ssh.c.coverity openssh-8.5p1/ssh.c
  		muxclient(options.control_path);
  		/* muxclient() doesn't return on success. */
  		fatal("Failed to connect to new control master");
-diff -up openssh-7.4p1/sshd.c.coverity openssh-7.4p1/sshd.c
---- openssh-7.4p1/sshd.c.coverity	2016-12-23 16:40:26.897788690 +0100
-+++ openssh-7.4p1/sshd.c	2016-12-23 16:40:26.904788692 +0100
-@@ -691,8 +691,10 @@ privsep_preauth(Authctxt *authctxt)
+diff --git a/sshd.c b/sshd.c
+index e05dd82..a4a1b79 100644
+--- a/sshd.c
++++ b/sshd.c
+@@ -595,8 +595,10 @@ privsep_preauth(struct ssh *ssh)
  
  		privsep_preauth_child(ssh);
  		setproctitle("%s", "[net]");
@@ -495,26 +501,7 @@ diff -up openssh-7.4p1/sshd.c.coverity openssh-7.4p1/sshd.c
  
  		return 0;
  	}
-@@ -1386,6 +1388,9 @@ server_accept_loop(int *sock_in, int *so
- 			explicit_bzero(rnd, sizeof(rnd));
- 		}
- 	}
-+
-+	if (fdset != NULL)
-+		free(fdset);
- }
- 
- /*
-@@ -2474,7 +2479,7 @@ do_ssh2_kex(struct ssh *ssh)
- 	if (options.rekey_limit || options.rekey_interval)
- 		ssh_packet_set_rekey_limits(ssh, options.rekey_limit,
- 		    options.rekey_interval);
--
-+	/* coverity[leaked_storage : FALSE]*/
- 	myproposal[PROPOSAL_SERVER_HOST_KEY_ALGS] = compat_pkalg_proposal(
- 	    ssh, list_hostkey_types());
- 
-@@ -2519,8 +2524,11 @@ do_ssh2_kex(struct ssh *ssh)
+@@ -2560,8 +2562,11 @@ do_ssh2_kex(struct ssh *ssh)
  
  	if (newstr)
  		myproposal[PROPOSAL_KEX_ALGS] = newstr;
@@ -527,45 +514,18 @@ diff -up openssh-7.4p1/sshd.c.coverity openssh-7.4p1/sshd.c
  	}
  #endif
  
-diff -up openssh-8.5p1/ssh-keygen.c.coverity openssh-8.5p1/ssh-keygen.c
---- openssh-8.5p1/ssh-keygen.c.coverity	2021-03-24 12:03:33.780968145 +0100
-+++ openssh-8.5p1/ssh-keygen.c	2021-03-24 12:03:33.787968194 +0100
-@@ -2332,6 +2332,9 @@ update_krl_from_file(struct passwd *pw,
- 			r = ssh_krl_revoke_key_sha256(krl, blob, blen);
- 			if (r != 0)
- 				fatal_fr(r, "revoke key failed");
-+			freezero(blob, blen);
-+			blob = NULL;
-+			blen = 0;
- 		} else {
- 			if (strncasecmp(cp, "key:", 4) == 0) {
- 				cp += 4;
-@@ -2879,6 +2882,7 @@ do_moduli_screen(const char *out_file, c
- 		} else if (strncmp(opts[i], "start-line=", 11) == 0) {
- 			start_lineno = strtoul(opts[i]+11, NULL, 10);
- 		} else if (strncmp(opts[i], "checkpoint=", 11) == 0) {
-+			free(checkpoint);
- 			checkpoint = xstrdup(opts[i]+11);
- 		} else if (strncmp(opts[i], "generator=", 10) == 0) {
- 			generator_wanted = (u_int32_t)strtonum(
-@@ -2920,6 +2924,9 @@ do_moduli_screen(const char *out_file, c
- #else /* WITH_OPENSSL */
- 	fatal("Moduli screening is not supported");
- #endif /* WITH_OPENSSL */
-+	free(checkpoint);
-+	if (in != stdin)
-+		fclose(in);
- }
- 
- static char *
-diff -up openssh-8.5p1/sshsig.c.coverity openssh-8.5p1/sshsig.c
---- openssh-8.5p1/sshsig.c.coverity	2021-03-02 11:31:47.000000000 +0100
-+++ openssh-8.5p1/sshsig.c	2021-03-24 12:03:33.787968194 +0100
-@@ -515,6 +515,7 @@ hash_file(int fd, const char *hashalg, s
- 			oerrno = errno;
- 			error_f("read: %s", strerror(errno));
- 			ssh_digest_free(ctx);
-+			ctx = NULL;
- 			errno = oerrno;
- 			r = SSH_ERR_SYSTEM_ERROR;
- 			goto out;
+diff --git a/sshsig.c b/sshsig.c
+index eb2a931..3e91c14 100644
+--- a/sshsig.c
++++ b/sshsig.c
+@@ -551,6 +551,7 @@ hash_file(int fd, const char *hashalg, struct sshbuf **bp)
+ 	oerrno = errno;
+ 	sshbuf_free(b);
+ 	ssh_digest_free(ctx);
++	ctx = NULL;
+ 	explicit_bzero(hash, sizeof(hash));
+ 	errno = oerrno;
+ 	return r;
+-- 
+2.27.0
+

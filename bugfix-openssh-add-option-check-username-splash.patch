@@ -6,7 +6,6 @@ Subject: [PATCH] openssh: add option check username splash
 add a check to inhibit username contains splash
 add an option 'CheckUserSplash' so that user can turn off
 this check
-
 ---
  auth2.c     | 4 +++-
  servconf.c  | 8 ++++++++
@@ -15,10 +14,10 @@ this check
  4 files changed, 14 insertions(+), 1 deletion(-)
 
 diff --git a/auth2.c b/auth2.c
-index 4adc502..956b9cf 100644
+index 203ba01..284ea19 100644
 --- a/auth2.c
 +++ b/auth2.c
-@@ -282,11 +282,13 @@ input_userauth_request(int type, u_int32_t seq, struct ssh *ssh)
+@@ -281,11 +281,13 @@ input_userauth_request(int type, u_int32_t seq, struct ssh *ssh)
  	debug("userauth-request for user %s service %s method %s", user, service, method);
  	debug("attempt %d failures %d", authctxt->attempt, authctxt->failures);
  
@@ -34,10 +33,10 @@ index 4adc502..956b9cf 100644
  		*style++ = 0;
  
 diff --git a/servconf.c b/servconf.c
-index 7001d56..76147f9 100644
+index d72fb62..6888971 100644
 --- a/servconf.c
 +++ b/servconf.c
-@@ -195,6 +195,7 @@ initialize_server_options(ServerOptions *options)
+@@ -201,6 +201,7 @@ initialize_server_options(ServerOptions *options)
  	options->ip_qos_interactive = -1;
  	options->ip_qos_bulk = -1;
  	options->version_addendum = NULL;
@@ -45,7 +44,7 @@ index 7001d56..76147f9 100644
  	options->fingerprint_hash = -1;
  	options->disable_forwarding = -1;
  	options->expose_userauth_info = -1;
-@@ -473,6 +474,8 @@ fill_default_server_options(ServerOptions *options)
+@@ -460,6 +461,8 @@ fill_default_server_options(ServerOptions *options)
  		options->ip_qos_bulk = IPTOS_DSCP_CS1;
  	if (options->version_addendum == NULL)
  		options->version_addendum = xstrdup("");
@@ -54,15 +53,15 @@ index 7001d56..76147f9 100644
  	if (options->fwd_opts.streamlocal_bind_mask == (mode_t)-1)
  		options->fwd_opts.streamlocal_bind_mask = 0177;
  	if (options->fwd_opts.streamlocal_bind_unlink == -1)
-@@ -574,6 +577,7 @@ typedef enum {
- 	sStreamLocalBindMask, sStreamLocalBindUnlink,
+@@ -553,6 +556,7 @@ typedef enum {
  	sAllowStreamLocalForwarding, sFingerprintHash, sDisableForwarding,
  	sExposeAuthInfo, sRDomain, sPubkeyAuthOptions, sSecurityKeyProvider,
+ 	sRequiredRSASize,
 +	sCheckUserSplash,
  	sDeprecated, sIgnore, sUnsupported
  } ServerOpCodes;
  
-@@ -740,6 +744,7 @@ static struct {
+@@ -726,6 +730,7 @@ static struct {
  	{ "fingerprinthash", sFingerprintHash, SSHCFG_GLOBAL },
  	{ "disableforwarding", sDisableForwarding, SSHCFG_ALL },
  	{ "exposeauthinfo", sExposeAuthInfo, SSHCFG_ALL },
@@ -70,7 +69,7 @@ index 7001d56..76147f9 100644
  	{ "rdomain", sRDomain, SSHCFG_ALL },
  	{ "casignaturealgorithms", sCASignatureAlgorithms, SSHCFG_ALL },
  	{ "securitykeyprovider", sSecurityKeyProvider, SSHCFG_GLOBAL },
-@@ -1360,6 +1365,9 @@ process_server_config_line_depth(ServerOptions *options, char *line,
+@@ -1384,6 +1389,9 @@ process_server_config_line_depth(ServerOptions *options, char *line,
  	case sUsePAM:
  		intptr = &options->use_pam;
  		goto parse_flag;
@@ -81,30 +80,27 @@ index 7001d56..76147f9 100644
  	/* Standard Options */
  	case sBadOption:
 diff --git a/servconf.h b/servconf.h
-index a3827e5..2c16b5a 100644
+index 77fd779..694addf 100644
 --- a/servconf.h
 +++ b/servconf.h
-@@ -226,6 +226,7 @@ typedef struct {
+@@ -237,6 +237,7 @@ typedef struct {
  	int	fingerprint_hash;
  	int	expose_userauth_info;
  	u_int64_t timing_secret;
-+	int check_user_splash;      /* check whether splash exists in username, if exist, disable login */
++	int	check_user_splash;      /* check whether splash exists in username, if exist, disable login */
  	char   *sk_provider;
+ 	int	required_rsa_size;	/* minimum size of RSA keys */
  }       ServerOptions;
- 
 diff --git a/sshd_config b/sshd_config
-index ebc28b3..b121450 100644
+index 6d47368..973aecf 100644
 --- a/sshd_config
 +++ b/sshd_config
-@@ -125,6 +125,8 @@ Subsystem	sftp	/usr/libexec/sftp-server
- # Example of overriding settings on a per-user basis
- #Match User anoncvs
- #	X11Forwarding no
+@@ -128,3 +128,5 @@ Subsystem	sftp	/usr/libexec/sftp-server
  #	AllowTcpForwarding no
  #	PermitTTY no
  #	ForceCommand cvs server
 +#CheckUserSplash yes
 +
 -- 
-2.23.0
+2.27.0
 

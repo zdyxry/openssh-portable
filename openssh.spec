@@ -6,10 +6,10 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 17
+%global openssh_release 1
 
 Name:           openssh
-Version:        8.8p1
+Version:        9.1p1
 Release:        %{openssh_release}
 URL:            http://www.openssh.com/portable.html
 License:        BSD
@@ -18,19 +18,19 @@ Summary:        An open source implementation of SSH protocol version 2
 Source0:        https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-%{version}.tar.gz
 Source1:        https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-%{version}.tar.gz.asc
 Source2:        sshd.pam
-Source4:        http://prdownloads.sourceforge.net/pamsshagentauth/pam_ssh_agent_auth/pam_ssh_agent_auth-0.10.4.tar.gz
-Source5:        pam_ssh_agent-rmheaders
-Source6:        ssh-keycat.pam
-Source7:        sshd.sysconfig
-Source9:        sshd@.service
-Source10:       sshd.socket
-Source11:       sshd.service
-Source12:       sshd-keygen@.service
-Source13:       sshd-keygen
-Source14:       sshd.tmpfiles
-Source15:       sshd-keygen.target
-Source16:       ssh-agent.service
-Source17:       ssh-keygen-bash-completion.sh
+Source3:        http://prdownloads.sourceforge.net/pamsshagentauth/pam_ssh_agent_auth/pam_ssh_agent_auth-0.10.4.tar.gz
+Source4:        pam_ssh_agent-rmheaders
+Source5:        ssh-keycat.pam
+Source6:        sshd.sysconfig
+Source7:        sshd@.service
+Source8:        sshd.socket
+Source9:        sshd.service
+Source10:       sshd-keygen@.service
+Source11:       sshd-keygen
+Source12:       sshd.tmpfiles
+Source13:       sshd-keygen.target
+Source14:       ssh-agent.service
+Source15:       ssh-keygen-bash-completion.sh
 Patch0:         openssh-6.7p1-coverity.patch
 Patch1:         openssh-7.6p1-audit.patch
 Patch2:         openssh-7.1p2-audit-race-condition.patch
@@ -48,12 +48,10 @@ Patch14:        openssh-6.6p1-keyperm.patch
 Patch15:        openssh-5.9p1-ipv6man.patch
 Patch16:        openssh-5.8p2-sigpipe.patch
 Patch17:        openssh-7.2p2-x11.patch
-Patch18:        openssh-7.7p1-fips.patch
 Patch19:        openssh-5.1p1-askpass-progress.patch
 Patch20:        openssh-4.3p2-askpass-grab-info.patch
 Patch21:        openssh-7.7p1.patch
 Patch22:        openssh-7.8p1-UsePAM-warning.patch
-Patch23:        openssh-6.3p1-ctr-evp-fast.patch
 Patch26:        openssh-8.0p1-gssapi-keyex.patch
 Patch27:        openssh-6.6p1-force_krb.patch
 Patch28:        openssh-6.6p1-GSSAPIEnablek5users.patch
@@ -82,31 +80,16 @@ Patch51:        openssh-8.0p1-keygen-strip-doseol.patch
 Patch52:        openssh-8.0p1-preserve-pam-errors.patch
 Patch53:        openssh-8.7p1-scp-kill-switch.patch
 Patch54:        bugfix-sftp-when-parse_user_host_path-empty-path-should-be-allowed.patch
-Patch55:        bugfix-openssh-6.6p1-log-usepam-no.patch
 Patch56:        bugfix-openssh-add-option-check-username-splash.patch
 Patch57:        feature-openssh-7.4-hima-sftpserver-oom-and-fix.patch
 Patch58:        bugfix-openssh-fix-sftpserver.patch
 Patch59:        set-sshd-config.patch
 Patch60:        feature-add-SMx-support.patch
-Patch61:        backport-upstream-a-little-extra-debugging.patch
-Patch62:        backport-upstream-better-debugging-for-connect_next.patch
 Patch63:        add-loongarch.patch
-Patch64:        backport-upstream-ssh-keygen-Y-check-novalidate-requires-name.patch
 Patch65:        openssh-Add-sw64-architecture.patch
-Patch66:        backport-upstream-if-sshpkt-functions-fail-then-password-is-n.patch
-Patch67:        backport-upstream-Make-sure-not-to-fclose-the-same-fd-twice-i.patch
-Patch68:        backport-upstream-Donot-attempt-to-fprintf-a-null-identity-co.patch
-Patch69:        backport-upstream-ignore-SIGPIPE-earlier-in-main-specifically.patch
-Patch70:        backport-upstream-Always-return-allocated-strings-from-the-ke.patch
-Patch71:        backport-Don-t-leak-the-strings-allocated-by-order_h.patch
-Patch72:        backport-Return-ERANGE-from-getcwd-if-buffer-size-is-1.patch
-Patch73:        backport-upstream-double-free-in-error-path-from-Eusgor-via-G.patch
 Patch74:        add-strict-scp-check-for-CVE-2020-15778.patch
-Patch75:        backport-upstream-avoid-integer-overflow-of-auth-attempts-har.patch
-Patch76:        backport-Skip-scp3-test-if-there-s-no-scp-on-remote-path.patch
 Patch77:        skip-scp-test-if-there-is-no-scp-on-remote-path-as-s.patch
 Patch78:        skip-tests-for-C-if-there-is-no-openssl-on-local-pat.patch
-Patch79:        backport-fix-possible-NULL-deref-when-built-without-FIDO.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -180,7 +163,7 @@ instance. The module is most useful for su and sudo service stacks.
 %package_help
 
 %prep
-%setup -q -a 4
+%setup -q -a 3
 
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
 %patch3 -p2 -b .psaa-build
@@ -190,14 +173,13 @@ pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
 %patch6 -p2 -b .psaa-agent
 %patch8 -p2 -b .psaa-deref
 # Remove duplicate headers and library files
-rm -f $(cat %{SOURCE5})
+rm -f $(cat %{SOURCE4})
 popd
 
 %patch9 -p1 -b .role-mls
 %patch10 -p1 -b .privsep-selinux
 %patch12 -p1 -b .keycat
 %patch13 -p1 -b .ip-opts
-%patch14 -p1 -b .keyperm
 %patch15 -p1 -b .ipv6man
 %patch16 -p1 -b .sigpipe
 %patch17 -p1 -b .x11
@@ -205,7 +187,6 @@ popd
 %patch20 -p1 -b .grab-info
 %patch21 -p1
 %patch22 -p1 -b .log-usepam-no
-%patch23 -p1 -b .evp-ctr
 %patch26 -p1 -b .gsskex
 %patch27 -p1 -b .force_krb
 %patch29 -p1 -b .ccache_name
@@ -235,35 +216,18 @@ popd
 %patch53 -p1 -b .kill-scp
 %patch1 -p1 -b .audit
 %patch2 -p1 -b .audit-race
-%patch18 -p1 -b .fips
 %patch0 -p1 -b .coverity
-
 %patch54 -p1
-%patch55 -p1
 %patch56 -p1
 %patch57 -p1
 %patch58 -p1
 %patch59 -p1
 %patch60 -p1
-%patch61 -p1
-%patch62 -p1
 %patch63 -p1
-%patch64 -p1
 %patch65 -p1
-%patch66 -p1
-%patch67 -p1
-%patch68 -p1
-%patch69 -p1
-%patch70 -p1
-%patch71 -p1
-%patch72 -p1
-%patch73 -p1
 %patch74 -p1
-%patch75 -p1
-%patch76 -p1
 %patch77 -p1
 %patch78 -p1
-%patch79 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -350,23 +314,23 @@ install -d $RPM_BUILD_ROOT/etc/pam.d/
 install -d $RPM_BUILD_ROOT/etc/sysconfig/
 install -d $RPM_BUILD_ROOT%{_libexecdir}/openssh
 install -m644 %{SOURCE2} $RPM_BUILD_ROOT/etc/pam.d/sshd
-install -m644 %{SOURCE6} $RPM_BUILD_ROOT/etc/pam.d/ssh-keycat
-install -m644 %{SOURCE7} $RPM_BUILD_ROOT/etc/sysconfig/sshd
+install -m644 %{SOURCE5} $RPM_BUILD_ROOT/etc/pam.d/ssh-keycat
+install -m644 %{SOURCE6} $RPM_BUILD_ROOT/etc/sysconfig/sshd
 install -m644 ssh_config_redhat $RPM_BUILD_ROOT/etc/ssh/ssh_config.d/05-redhat.conf
 install -d -m755 $RPM_BUILD_ROOT/%{_unitdir}
-install -m644 %{SOURCE9} $RPM_BUILD_ROOT/%{_unitdir}/sshd@.service
-install -m644 %{SOURCE10} $RPM_BUILD_ROOT/%{_unitdir}/sshd.socket
-install -m644 %{SOURCE11} $RPM_BUILD_ROOT/%{_unitdir}/sshd.service
-install -m644 %{SOURCE12} $RPM_BUILD_ROOT/%{_unitdir}/sshd-keygen@.service
-install -m644 %{SOURCE15} $RPM_BUILD_ROOT/%{_unitdir}/sshd-keygen.target
+install -m644 %{SOURCE7} $RPM_BUILD_ROOT/%{_unitdir}/sshd@.service
+install -m644 %{SOURCE8} $RPM_BUILD_ROOT/%{_unitdir}/sshd.socket
+install -m644 %{SOURCE9} $RPM_BUILD_ROOT/%{_unitdir}/sshd.service
+install -m644 %{SOURCE10} $RPM_BUILD_ROOT/%{_unitdir}/sshd-keygen@.service
+install -m644 %{SOURCE13} $RPM_BUILD_ROOT/%{_unitdir}/sshd-keygen.target
 install -d -m755 $RPM_BUILD_ROOT/%{_userunitdir}
-install -m644 %{SOURCE16} $RPM_BUILD_ROOT/%{_userunitdir}/ssh-agent.service
-install -m744 %{SOURCE13} $RPM_BUILD_ROOT/%{_libexecdir}/openssh/sshd-keygen
+install -m644 %{SOURCE14} $RPM_BUILD_ROOT/%{_userunitdir}/ssh-agent.service
+install -m744 %{SOURCE11} $RPM_BUILD_ROOT/%{_libexecdir}/openssh/sshd-keygen
 install -m755 contrib/ssh-copy-id $RPM_BUILD_ROOT%{_bindir}/
 install contrib/ssh-copy-id.1 $RPM_BUILD_ROOT%{_mandir}/man1/
-install -m644 -D %{SOURCE14} $RPM_BUILD_ROOT%{_tmpfilesdir}/%{name}.conf
+install -m644 -D %{SOURCE12} $RPM_BUILD_ROOT%{_tmpfilesdir}/%{name}.conf
 install contrib/gnome-ssh-askpass $RPM_BUILD_ROOT%{_libexecdir}/openssh/gnome-ssh-askpass
-install -m644 %{SOURCE17} $RPM_BUILD_ROOT/etc/bash_completion.d/ssh-keygen-bash-completion.sh
+install -m644 %{SOURCE15} $RPM_BUILD_ROOT/etc/bash_completion.d/ssh-keygen-bash-completion.sh
 
 ln -s gnome-ssh-askpass $RPM_BUILD_ROOT%{_libexecdir}/openssh/ssh-askpass
 install -m 755 -d $RPM_BUILD_ROOT%{_sysconfdir}/profile.d/
@@ -462,6 +426,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Mon Jan 30 2023 renmingshuai<renmingshuai@huawei.com> - 9.1p1-1
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:update to openssh-9.1p1
+
 * Mon Jan 9 2023 renmingshuai <renmingshuai@huawei.com> - 8.8p1-17
 - Type:bugfix
 - CVE:NA
