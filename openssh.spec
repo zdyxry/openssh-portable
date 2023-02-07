@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 1
+%global openssh_release 2
 
 Name:           openssh
 Version:        9.1p1
@@ -90,6 +90,7 @@ Patch65:        openssh-Add-sw64-architecture.patch
 Patch74:        add-strict-scp-check-for-CVE-2020-15778.patch
 Patch77:        skip-scp-test-if-there-is-no-scp-on-remote-path-as-s.patch
 Patch78:        skip-tests-for-C-if-there-is-no-openssl-on-local-pat.patch
+Patch79:        backport-upstream-CVE-2023-25136-fix-double-free-caused.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -228,6 +229,7 @@ popd
 %patch74 -p1
 %patch77 -p1
 %patch78 -p1
+%patch79 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -426,6 +428,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Mon Feb 06 2023 renmingshuai<renmingshuai@huawei.com> - 9.1p1-2
+- Type:CVE
+- CVE:CVE-2023-25136
+- SUG:NA
+- DESC:fix CVE-2023-25136
+
 * Mon Jan 30 2023 renmingshuai<renmingshuai@huawei.com> - 9.1p1-1
 - Type:bugfix
 - CVE:NA
