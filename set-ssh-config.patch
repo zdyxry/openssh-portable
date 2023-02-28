@@ -1,0 +1,30 @@
+From 8b8319aac379d9d6f75577507e87a97a8aa8aadc Mon Sep 17 00:00:00 2001
+From: renmingshuai <renmingshuai@huawei.com>
+Date: Mon, 5 Sep 2022 10:33:02 +0800
+Subject: [PATCH] set-ssh-config
+
+---
+ ssh_config | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/ssh_config b/ssh_config
+index df22e2f..46b0987 100644
+--- a/ssh_config
++++ b/ssh_config
+@@ -48,4 +48,13 @@
+ #  file under  /etc/ssh/ssh_config.d/  which will be automatically
+ # included below. For more information, see manual page for
+ #  update-crypto-policies(8)  and  ssh_config(5).
++Match final all
++	Include /etc/crypto-policies/back-ends/openssh.config
++	GSSAPIAuthentication yes
++	ForwardX11Trusted yes
++	SendEnv LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES
++	SendEnv LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT
++	SendEnv LC_IDENTIFIACTION LC_ALL_LANGUAGE
++	SendEnv XMODIFIERS
++
+ Include /etc/ssh/ssh_config.d/*.conf
+-- 
+1.8.3.1
+
