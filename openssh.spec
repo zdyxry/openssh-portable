@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 2
+%global openssh_release 3
 
 Name:           openssh
 Version:        9.1p1
@@ -91,6 +91,7 @@ Patch74:        add-strict-scp-check-for-CVE-2020-15778.patch
 Patch77:        skip-scp-test-if-there-is-no-scp-on-remote-path-as-s.patch
 Patch78:        skip-tests-for-C-if-there-is-no-openssl-on-local-pat.patch
 Patch79:        backport-upstream-CVE-2023-25136-fix-double-free-caused.patch
+Patch80:        set-ssh-config.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -230,6 +231,7 @@ popd
 %patch77 -p1
 %patch78 -p1
 %patch79 -p1
+%patch80 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -318,7 +320,6 @@ install -d $RPM_BUILD_ROOT%{_libexecdir}/openssh
 install -m644 %{SOURCE2} $RPM_BUILD_ROOT/etc/pam.d/sshd
 install -m644 %{SOURCE5} $RPM_BUILD_ROOT/etc/pam.d/ssh-keycat
 install -m644 %{SOURCE6} $RPM_BUILD_ROOT/etc/sysconfig/sshd
-install -m644 ssh_config_redhat $RPM_BUILD_ROOT/etc/ssh/ssh_config.d/05-redhat.conf
 install -d -m755 $RPM_BUILD_ROOT/%{_unitdir}
 install -m644 %{SOURCE7} $RPM_BUILD_ROOT/%{_unitdir}/sshd@.service
 install -m644 %{SOURCE8} $RPM_BUILD_ROOT/%{_unitdir}/sshd.socket
@@ -377,7 +378,6 @@ getent passwd sshd >/dev/null || \
 %attr(0755,root,root) %{_bindir}/ssh
 %attr(0755,root,root) %{_bindir}/scp
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/ssh/ssh_config
-%attr(0644,root,root) %config(noreplace) %{_sysconfdir}/ssh/ssh_config.d/05-redhat.conf
 %attr(0755,root,root) %{_bindir}/ssh-agent
 %attr(0755,root,root) %{_bindir}/ssh-add
 %attr(0755,root,root) %{_bindir}/ssh-keyscan
@@ -428,6 +428,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Tue Feb 28 2023 renmingshuai<renmingshuai@huawei.com> - 9.1p1-3
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:set default ssh_config
+
 * Mon Feb 06 2023 renmingshuai<renmingshuai@huawei.com> - 9.1p1-2
 - Type:CVE
 - CVE:CVE-2023-25136
