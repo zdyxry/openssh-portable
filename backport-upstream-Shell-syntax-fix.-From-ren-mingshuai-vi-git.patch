@@ -1,0 +1,26 @@
+From 923c3f437f439cfca238fba37e97a7041782f615 Mon Sep 17 00:00:00 2001
+From: "dtucker@openbsd.org" <dtucker@openbsd.org>
+Date: Sat, 14 Jan 2023 10:05:54 +0000
+Subject: [PATCH] upstream: Shell syntax fix. From ren mingshuai vi github
+ PR#369.
+
+OpenBSD-Regress-ID: 6696b2eeefe128099fc3d7ea9f23252cc35156f9
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=923c3f437f439cfca238fba37e97a7041782f615
+---
+diff --git a/regress/yes-head.sh b/regress/yes-head.sh
+index 2759eb8c..1bde504f 100644
+--- a/regress/yes-head.sh
++++ b/regress/yes-head.sh
+@@ -6,7 +6,7 @@ tid="yes pipe head"
+ lines=`${SSH} -F $OBJ/ssh_proxy thishost 'sh -c "while true;do echo yes;done | _POSIX2_VERSION=199209 head -2000"' | (sleep 3 ; wc -l)`
+ if [ $? -ne 0 ]; then
+ 	fail "yes|head test failed"
+-	lines = 0;
+++	lines=0
+ fi
+ if [ $lines -ne 2000 ]; then
+ 	fail "yes|head returns $lines lines instead of 2000"
+-- 
+2.27.0
+

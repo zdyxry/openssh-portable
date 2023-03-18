@@ -1,0 +1,92 @@
+From 35253af01d8c0ab444c8377402121816e71c71f5 Mon Sep 17 00:00:00 2001
+From: "djm@openbsd.org" <djm@openbsd.org>
+Date: Wed, 18 Jan 2023 02:00:10 +0000
+Subject: [PATCH] upstream: when restoring non-blocking mode to stdio
+fds,
+ restore
+ 
+exactly the flags that ssh started with and don't just clobber them with
+zero, as this could also remove the append flag from the set;
+
+bz3523; ok dtucker@
+
+OpenBSD-Commit-ID: 1336b03e881db7564a4b66014eb24c5230e9a0c0
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=35253af01d8c0ab444c8377402121816e71c71f5
+---
+ channels.c | 19 ++++++++++++++-----
+ channels.h |  3 ++-
+ 2 files changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/channels.c b/channels.c
+index ea4d8da..cee4d2c 100644
+--- a/channels.c
++++ b/channels.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: channels.c,v 1.420 2022/09/19 08:49:50 djm Exp $ */
++/* $OpenBSD: channels.c,v 1.427 2023/01/18 02:00:10 djm Exp $ */
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+@@ -337,16 +337,19 @@ channel_register_fds(struct ssh *ssh, Channel *c, int rfd, int wfd, int efd,
+ 		 */
+ 		if (rfd != -1 && !isatty(rfd) &&
+ 		    (val = fcntl(rfd, F_GETFL)) != -1 && !(val & O_NONBLOCK)) {
++			c->restore_flags[0] = val;
+ 			c->restore_block |= CHANNEL_RESTORE_RFD;
+ 			set_nonblock(rfd);
+ 		}
+ 		if (wfd != -1 && !isatty(wfd) &&
+ 		    (val = fcntl(wfd, F_GETFL)) != -1 && !(val & O_NONBLOCK)) {
++			c->restore_flags[1] = val;
+ 			c->restore_block |= CHANNEL_RESTORE_WFD;
+ 			set_nonblock(wfd);
+ 		}
+ 		if (efd != -1 && !isatty(efd) &&
+ 		    (val = fcntl(efd, F_GETFL)) != -1 && !(val & O_NONBLOCK)) {
++			c->restore_flags[2] = val;
+ 			c->restore_block |= CHANNEL_RESTORE_EFD;
+ 			set_nonblock(efd);
+ 		}
+@@ -428,10 +431,16 @@ channel_close_fd(struct ssh *ssh, Channel *c, int *fdp)
+ 	if (fd == -1)
+ 		return 0;
+ 
+-	if ((*fdp == c->rfd && (c->restore_block & CHANNEL_RESTORE_RFD) != 0) ||
+-	   (*fdp == c->wfd && (c->restore_block & CHANNEL_RESTORE_WFD) != 0) ||
+-	   (*fdp == c->efd && (c->restore_block & CHANNEL_RESTORE_EFD) != 0))
+-		(void)fcntl(*fdp, F_SETFL, 0);	/* restore blocking */
++	/* restore blocking */
++	if (*fdp == c->rfd &&
++	    (c->restore_block & CHANNEL_RESTORE_RFD) != 0)
++		(void)fcntl(*fdp, F_SETFL, c->restore_flags[0]);
++	else if (*fdp == c->wfd &&
++	    (c->restore_block & CHANNEL_RESTORE_WFD) != 0)
++		(void)fcntl(*fdp, F_SETFL, c->restore_flags[1]);
++	else if (*fdp == c->efd &&
++	    (c->restore_block & CHANNEL_RESTORE_EFD) != 0)
++		(void)fcntl(*fdp, F_SETFL, c->restore_flags[2]);
+ 
+ 	if (*fdp == c->rfd) {
+ 		c->io_want &= ~SSH_CHAN_IO_RFD;
+diff --git a/channels.h b/channels.h
+index 7d8a83e..9b1b11e 100644
+--- a/channels.h
++++ b/channels.h
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: channels.h,v 1.143 2022/05/05 00:56:58 djm Exp $ */
++/* $OpenBSD: channels.h,v 1.148 2023/01/18 02:00:10 djm Exp $ */
+ 
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+@@ -153,6 +153,7 @@ struct Channel {
+ 				 * this way post-IO handlers are not
+ 				 * accidentally called if a FD gets reused */
+ 	int	restore_block;	/* fd mask to restore blocking status */
++    int restore_flags[3];	/* flags to restore */
+ 	struct sshbuf *input;	/* data read from socket, to be sent over
+ 				 * encrypted connection */
+ 	struct sshbuf *output;	/* data received over encrypted connection for
+-- 
+2.23.0
+

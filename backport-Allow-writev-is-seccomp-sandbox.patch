@@ -1,0 +1,30 @@
+From 6283f4bd83eee714d0f5fc55802eff836b06fea8 Mon Sep 17 00:00:00 2001
+From: Darren Tucker <dtucker@dtucker.net>
+Date: Sat, 14 Jan 2023 22:02:44 +1100
+Subject: [PATCH] Allow writev is seccomp sandbox.
+
+This seems to be used by recent glibcs at least in some configurations.
+From bz#3512, ok djm@
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=6283f4bd83eee714d0f5fc55802eff836b06fea8
+---
+ sandbox-seccomp-filter.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/sandbox-seccomp-filter.c b/sandbox-seccomp-filter.c
+index cec43c46..4ab49eb6 100644
+--- a/sandbox-seccomp-filter.c
++++ b/sandbox-seccomp-filter.c
+@@ -312,6 +312,9 @@ static const struct sock_filter preauth_insns[] = {
+ #ifdef __NR_write
+ 	SC_ALLOW(__NR_write),
+ #endif
++#ifdef __NR_writev
++	SC_ALLOW(__NR_writev),
++#endif
+ #ifdef __NR_socketcall
+ 	SC_ALLOW_ARG(__NR_socketcall, 0, SYS_SHUTDOWN),
+ 	SC_DENY(__NR_socketcall, EACCES),
+-- 
+2.27.0
+

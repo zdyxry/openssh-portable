@@ -1,0 +1,39 @@
+From cf1a9852d7fc93e4abc4168aed09529a57427cdc Mon Sep 17 00:00:00 2001
+From: Darren Tucker <dtucker@dtucker.net>
+Date: Wed, 9 Nov 2022 09:23:47 +1100
+Subject: [PATCH] Defer seed_rng until after closefrom call.
+
+seed_rng will initialize OpenSSL, and some engine providers (eg Intel's
+QAT) will open descriptors for their own use.  bz#3483, patch from
+joel.d.schuetze at intel.com, ok djm@
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=cf1a9852d7fc93e4abc4168aed09529a57427cdc
+---
+ sshd.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/sshd.c b/sshd.c
+index b4bb7d65..808d91ef 100644
+--- a/sshd.c
++++ b/sshd.c
+@@ -1580,8 +1580,6 @@ main(int ac, char **av)
+ 	/* Ensure that fds 0, 1 and 2 are open or directed to /dev/null */
+ 	sanitise_stdfd();
+ 
+-	seed_rng();
+-
+ 	/* Initialize configuration options to their default values. */
+ 	initialize_server_options(&options);
+ 
+@@ -1703,6 +1701,8 @@ main(int ac, char **av)
+ 	else
+ 		closefrom(REEXEC_DEVCRYPTO_RESERVED_FD);
+ 
++	seed_rng();
++
+ 	/* If requested, redirect the logs to the specified logfile. */
+ 	if (logfile != NULL)
+ 		log_redirect_stderr_to(logfile);
+-- 
+2.27.0
+

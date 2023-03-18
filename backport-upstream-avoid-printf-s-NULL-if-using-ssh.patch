@@ -1,0 +1,42 @@
+From f673b49f3be3eb51074fbb8a405beb6cd0f7d93e Mon Sep 17 00:00:00 2001
+From: "djm@openbsd.org" <djm@openbsd.org>
+Date: Fri, 13 Jan 2023 02:44:02 +0000
+Subject: [PATCH] upstream: avoid printf("%s", NULL) if using ssh
+
+-oUserKnownHostsFile=none and a hostkey in one of the system known hosts file
+changes; ok dtucker@
+
+OpenBSD-Commit-ID: 7ca87614bfc6da491315536a7f2301434a9fe614
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=f673b49f3be3eb51074fbb8a405beb6cd0f7d93e
+---
+ sshconnect.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/sshconnect.c b/sshconnect.c
+index 0fca52b2..792bc34b 100644
+--- a/sshconnect.c
++++ b/sshconnect.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: sshconnect.c,v 1.358 2022/08/26 08:16:27 djm Exp $ */
++/* $OpenBSD: sshconnect.c,v 1.361 2023/01/13 02:44:02 djm Exp $ */
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+@@ -1276,8 +1276,11 @@ check_host_key(char *hostname, const struct ssh_conn_info *cinfo,
+ 		}
+ 		/* The host key has changed. */
+ 		warn_changed_key(host_key);
+-		error("Add correct host key in %.100s to get rid of this message.",
+-		    user_hostfiles[0]);
++		if (num_user_hostfiles > 0 || num_system_hostfiles > 0) {
++			error("Add correct host key in %.100s to get rid "
++			    "of this message.", num_user_hostfiles > 0 ?
++			    user_hostfiles[0] : system_hostfiles[0]);
++		}
+ 		error("Offending %s key in %s:%lu",
+ 		    sshkey_type(host_found->key),
+ 		    host_found->file, host_found->line);
+-- 
+2.27.0
+

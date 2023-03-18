@@ -1,0 +1,125 @@
+From 903c556b938fff2d7bff8da2cc460254430963c5 Mon Sep 17 00:00:00 2001
+From: "djm@openbsd.org" <djm@openbsd.org>
+Date: Thu, 2 Feb 2023 12:12:52 +0000
+Subject: [PATCH] upstream: test compat_kex_proposal(); by dtucker@
+
+OpenBSD-Regress-ID: 0e404ee264db546f9fdbf53390689ab5f8d38bf2
+
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=903c556b938fff2d7bff8da2cc460254430963c5
+---
+ regress/unittests/kex/test_proposal.c | 79 +++++++++++++++++++++++++++
+ regress/unittests/kex/tests.c         |  4 +-
+ 2 files changed, 82 insertions(+), 1 deletion(-)
+ create mode 100644 regress/unittests/kex/test_proposal.c
+
+diff --git a/regress/unittests/kex/test_proposal.c b/regress/unittests/kex/test_proposal.c
+new file mode 100644
+index 0000000..b89ff59
+--- /dev/null
++++ b/regress/unittests/kex/test_proposal.c
+@@ -0,0 +1,79 @@
++/* 	$OpenBSD: test_proposal.c,v 1.1 2023/02/02 12:12:52 djm Exp $ */
++/*
++ * Regress test KEX
++ *
++ * Placed in the public domain
++ */
++
++#include <sys/types.h>
++#include <signal.h>
++#include <stdio.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <string.h>
++
++#include "test_helper.h"
++
++#include "compat.h"
++#include "ssherr.h"
++#include "sshbuf.h"
++#include "kex.h"
++#include "packet.h"
++#include "xmalloc.h"
++
++void kex_proposal(void);
++
++#define CURVE25519 "curve25519-sha256@libssh.org"
++#define DHGEX1 "diffie-hellman-group-exchange-sha1"
++#define DHGEX256 "diffie-hellman-group-exchange-sha256"
++#define KEXALGOS CURVE25519","DHGEX256","DHGEX1
++void
++kex_proposal(void)
++{
++	size_t i;
++	struct ssh ssh;
++	char *result, *out, *in;
++	struct {
++		char *in;	/* TODO: make this const */
++		char *out;
++		int compat;
++	} tests[] = {
++		{ KEXALGOS, KEXALGOS, 0},
++		{ KEXALGOS, DHGEX256","DHGEX1, SSH_BUG_CURVE25519PAD },
++		{ KEXALGOS, CURVE25519, SSH_OLD_DHGEX },
++		{ "a,"KEXALGOS, "a", SSH_BUG_CURVE25519PAD|SSH_OLD_DHGEX },
++		/* TODO: enable once compat_kex_proposal doesn't fatal() */
++		/* { KEXALGOS, "", SSH_BUG_CURVE25519PAD|SSH_OLD_DHGEX }, */
++	};
++
++	TEST_START("compat_kex_proposal");
++	for (i = 0; i < sizeof(tests) / sizeof(*tests); i++) {
++		ssh.compat = tests[i].compat;
++		/* match entire string */
++		result = compat_kex_proposal(&ssh, tests[i].in);
++		ASSERT_STRING_EQ(result, tests[i].out);
++		free(result);
++		/* match at end */
++		in = kex_names_cat("a", tests[i].in);
++		out = kex_names_cat("a", tests[i].out);
++		result = compat_kex_proposal(&ssh, in);
++		ASSERT_STRING_EQ(result, out);
++		free(result); free(in); free(out);
++		/* match at start */
++		in = kex_names_cat(tests[i].in, "a");
++		out = kex_names_cat(tests[i].out, "a");
++		result = compat_kex_proposal(&ssh, in);
++		ASSERT_STRING_EQ(result, out);
++		free(result); free(in); free(out);
++		/* match in middle */
++		xasprintf(&in, "a,%s,b", tests[i].in);
++		if (*(tests[i].out) == '\0')
++			out = xstrdup("a,b");
++		else
++			xasprintf(&out, "a,%s,b", tests[i].out);
++		result = compat_kex_proposal(&ssh, in);
++		ASSERT_STRING_EQ(result, out);
++		free(result); free(in); free(out);
++	}
++	TEST_DONE();
++}
+diff --git a/regress/unittests/kex/tests.c b/regress/unittests/kex/tests.c
+index e7036ec..2a83daf 100644
+--- a/regress/unittests/kex/tests.c
++++ b/regress/unittests/kex/tests.c
+@@ -1,4 +1,4 @@
+-/* 	$OpenBSD: tests.c,v 1.1 2015/01/15 23:41:29 markus Exp $ */
++/* 	$OpenBSD: tests.c,v 1.2 2023/02/02 12:12:52 djm Exp $ */
+ /*
+  * Placed in the public domain
+  */
+@@ -6,9 +6,11 @@
+ #include "../test_helper/test_helper.h"
+ 
+ void kex_tests(void);
++void kex_proposal(void);
+ 
+ void
+ tests(void)
+ {
+ 	kex_tests();
++	kex_proposal();
+ }
+-- 
+2.27.0
+

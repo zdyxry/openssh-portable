@@ -1,0 +1,46 @@
+From 650de7ecd3567b5a5dbf16dd1eb598bd8c20bca8 Mon Sep 17 00:00:00 2001
+From: "dtucker@openbsd.org" <dtucker@openbsd.org>
+Date: Thu, 10 Nov 2022 23:03:10 +0000
+Subject: [PATCH] upstream: Handle dynamic remote port forwarding in escape
+ commandline's
+
+-R processing. bz#3499, ok djm@
+
+OpenBSD-Commit-ID: 194ee4cfe7ed0e2b8ad0727f493c798a50454208
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=650de7ecd3567b5a5dbf16dd1eb598bd8c20bca8
+---
+ clientloop.c | 13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/clientloop.c b/clientloop.c
+index 289d0b68..02349ccb 100644
+--- a/clientloop.c
++++ b/clientloop.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: clientloop.c,v 1.380 2022/06/03 04:30:46 djm Exp $ */
++/* $OpenBSD: clientloop.c,v 1.382 2022/11/10 23:03:10 dtucker Exp $ */
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+@@ -846,8 +846,15 @@ process_cmdline(struct ssh *ssh)
+ 		}
+ 		logit("Canceled forwarding.");
+ 	} else {
+-		if (!parse_forward(&fwd, s, dynamic, remote)) {
+-			logit("Bad forwarding specification.");
++		/* -R specs can be both dynamic or not, so check both. */
++		if (remote) {
++			if (!parse_forward(&fwd, s, 0, remote) &&
++			    !parse_forward(&fwd, s, 1, remote)) {
++				logit("Bad remote forwarding specification.");
++				goto out;
++			}
++		} else if (!parse_forward(&fwd, s, dynamic, remote)) {
++			logit("Bad local forwarding specification.");
+ 			goto out;
+ 		}
+ 		if (local || dynamic) {
+-- 
+2.27.0
+

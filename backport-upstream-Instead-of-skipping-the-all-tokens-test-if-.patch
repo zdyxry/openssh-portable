@@ -1,0 +1,44 @@
+From 4d87a00f704e0365e11c3c38b170c1275ec461fc Mon Sep 17 00:00:00 2001
+From: "dtucker@openbsd.org" <dtucker@openbsd.org>
+Date: Sat, 14 Jan 2023 09:57:08 +0000
+Subject: [PATCH] upstream: Instead of skipping the all-tokens test if we don't
+ have
+
+OpenSSL (since we use it to compute the hash), put the hash at the end and
+just omit it if we don't have it.  Prompted by bz#3521.
+
+OpenBSD-Regress-ID: c79ecba64250ed3b6417294b6c965e6b12ca5eea
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=4d87a00f704e0365e11c3c38b170c1275ec461fc
+---
+diff --git a/regress/percent.sh b/regress/percent.sh
+index ed5c604d..3dfa8d2d 100644
+--- a/regress/percent.sh
++++ b/regress/percent.sh
+@@ -12,6 +12,7 @@ USER=`id -u -n`
+ USERID=`id -u`
+ HOST=`hostname | cut -f1 -d.`
+ HOSTNAME=`hostname`
++HASH=""
+ 
+ # Localcommand is evaluated after connection because %T is not available
+ # until then.  Because of this we use a different method of exercising it,
+@@ -98,10 +99,13 @@ for i in matchexec localcommand remotecommand controlpath identityagent \
+ 	# containing %d for UserKnownHostsFile
+ 	if [ "$i" != "userknownhostsfile" ]; then
+ 		trial $i '%d' $HOME
++		in='%%/%i/%h/%d/%L/%l/%n/%p/%r/%u'
++		out="%/$USERID/127.0.0.1/$HOME/$HOST/$HOSTNAME/somehost/$PORT/$REMUSER/$USER"
+ 		if [ ! -z "${HASH}" ]; then
+-			trial $i '%%/%C/%i/%h/%d/%L/%l/%n/%p/%r/%u' \
+-			    "%/$HASH/$USERID/127.0.0.1/$HOME/$HOST/$HOSTNAME/somehost/$PORT/$REMUSER/$USER"
++			in="$in/%C"
++			out="$out/$HASH"
+ 		fi
++		trial $i "$in" "$out"
+ 	fi
+ done
+ 
+-- 
+2.27.0
+

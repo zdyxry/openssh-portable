@@ -1,0 +1,52 @@
+From 93f2ce8c050a7a2a628646c00b40b9b53fef93ef Mon Sep 17 00:00:00 2001
+From: "djm@openbsd.org" <djm@openbsd.org>
+Date: Fri, 16 Dec 2022 06:56:47 +0000
+Subject: [PATCH] upstream: Clear signal mask early in main(); sshd may have
+ been
+
+started with one or more signals masked (sigprocmask(2) is not cleared
+on fork/exec) and this could interfere with various things, e.g. the
+login grace timer.
+
+Execution environments that fail to clear the signal mask before running
+sshd are clearly broken, but apparently they do exist.
+
+Reported by Sreedhar Balasubramanian; ok dtucker@
+
+OpenBSD-Commit-ID: 77078c0b1c53c780269fc0c416f121d05e3010ae
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=93f2ce8c050a7a2a628646c00b40b9b53fef93ef
+---
+ sshd.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/sshd.c b/sshd.c
+index cd42bd5..da39226 100644
+--- a/sshd.c
++++ b/sshd.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: sshd.c,v 1.591 2022/09/17 10:34:29 djm Exp $ */
++/* $OpenBSD: sshd.c,v 1.594 2022/12/16 06:56:47 djm Exp $ */
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+@@ -1650,12 +1650,16 @@ main(int ac, char **av)
+ 	int keytype;
+ 	Authctxt *authctxt;
+ 	struct connection_info *connection_info = NULL;
++    sigset_t sigmask;
+ 
+ #ifdef HAVE_SECUREWARE
+ 	(void)set_auth_parameters(ac, av);
+ #endif
+ 	__progname = ssh_get_progname(av[0]);
+ 
++	sigemptyset(&sigmask);
++	sigprocmask(SIG_SETMASK, &sigmask, NULL);
++
+ 	/* Save argv. Duplicate so setproctitle emulation doesn't clobber it */
+ 	saved_argc = ac;
+ 	rexec_argc = ac;
+-- 
+2.23.0
+

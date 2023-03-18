@@ -6,7 +6,7 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 3
+%global openssh_release 4
 
 Name:           openssh
 Version:        9.1p1
@@ -44,7 +44,6 @@ Patch9:         openssh-7.8p1-role-mls.patch
 Patch10:        openssh-6.6p1-privsep-selinux.patch
 Patch12:        openssh-6.6p1-keycat.patch
 Patch13:        openssh-6.6p1-allow-ip-opts.patch
-Patch14:        openssh-6.6p1-keyperm.patch
 Patch15:        openssh-5.9p1-ipv6man.patch
 Patch16:        openssh-5.8p2-sigpipe.patch
 Patch17:        openssh-7.2p2-x11.patch
@@ -89,9 +88,29 @@ Patch63:        add-loongarch.patch
 Patch65:        openssh-Add-sw64-architecture.patch
 Patch74:        add-strict-scp-check-for-CVE-2020-15778.patch
 Patch77:        skip-scp-test-if-there-is-no-scp-on-remote-path-as-s.patch
-Patch78:        skip-tests-for-C-if-there-is-no-openssl-on-local-pat.patch
-Patch79:        backport-upstream-CVE-2023-25136-fix-double-free-caused.patch
-Patch80:        set-ssh-config.patch
+Patch78:        backport-upstream-CVE-2023-25136-fix-double-free-caused.patch
+Patch79:        set-ssh-config.patch
+Patch80:        backport-upstream-honour-user-s-umask-if-it-is-more-restricti.patch
+Patch81:        backport-upstream-use-correct-type-with-sizeof-ok-djm.patch
+Patch82:        backport-Defer-seed_rng-until-after-closefrom-call.patch
+Patch83:        backport-upstream-Handle-dynamic-remote-port-forwarding-in-es.patch
+Patch84:        backport-upstream-The-idiomatic-way-of-coping-with-signed-cha.patch
+Patch85:        backport-upstream-Clear-signal-mask-early-in-main-sshd-may-ha.patch
+Patch86:        backport-upstream-fix-bug-in-PermitRemoteOpen-which-caused-it.patch
+Patch87:        backport-upstream-regression-test-for-PermitRemoteOpen.patch
+Patch88:        backport-upstream-Copy-bytes-from-the_banana-rather-than-bana.patch
+Patch89:        backport-upstream-When-OpenSSL-is-not-available-skip-parts-of.patch
+Patch90:        backport-don-t-test-IPv6-addresses-if-platform-lacks-support.patch
+Patch91:        backport-upstream-avoid-printf-s-NULL-if-using-ssh.patch
+Patch92:        backport-upstream-Add-scp-s-path-to-test-sshd-s-PATH.patch
+Patch93:        backport-upstream-Instead-of-skipping-the-all-tokens-test-if-.patch
+Patch94:        backport-upstream-Shell-syntax-fix.-From-ren-mingshuai-vi-git.patch
+Patch95:        backport-Allow-writev-is-seccomp-sandbox.patch
+Patch96:        backport-upstream-Ensure-that-there-is-a-terminating-newline-.patch
+Patch97:        backport-upstream-when-restoring-non-blocking-mode-to-stdio-f.patch
+Patch98:        backport-upstream-test-compat_kex_proposal-by-dtucker.patch
+Patch99:        backport-adapt-compat_kex_proposal-test-to-portable.patch
+Patch100:       backport-upstream-Move-scp-path-setting-to-a-helper-function.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -232,6 +251,26 @@ popd
 %patch78 -p1
 %patch79 -p1
 %patch80 -p1
+%patch81 -p1
+%patch82 -p1
+%patch83 -p1
+%patch84 -p1
+%patch85 -p1
+%patch86 -p1
+%patch87 -p1
+%patch88 -p1
+%patch89 -p1
+%patch90 -p1
+%patch91 -p1
+%patch92 -p1
+%patch93 -p1
+%patch94 -p1
+%patch95 -p1
+%patch96 -p1
+%patch97 -p1
+%patch98 -p1
+%patch99 -p1
+%patch100 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
@@ -428,6 +467,12 @@ getent passwd sshd >/dev/null || \
 %attr(0644,root,root) %{_mandir}/man8/sftp-server.8*
 
 %changelog
+* Sat Mar 18 2023 renmingshuai<renmingshuai@huawei.com> - 9.1p1-4
+- Type:bugfix
+- CVE:NA
+- SUG:NA
+- DESC:backport some upstreams patches and delete unused patches
+
 * Tue Feb 28 2023 renmingshuai<renmingshuai@huawei.com> - 9.1p1-3
 - Type:bugfix
 - CVE:NA
