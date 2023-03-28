@@ -1,0 +1,113 @@
+From b3daa8dc582348d6ab8150bc1e571b7aa08c5388 Mon Sep 17 00:00:00 2001
+From: "djm@openbsd.org" <djm@openbsd.org>
+Date: Mon, 2 Jan 2023 07:03:30 +0000
+Subject: [PATCH] upstream: fix bug in PermitRemoteOpen which caused it
+to
+ ignore its
+
+first argument unless it was one of the special keywords "any" or
+"none".
+
+Reported by Georges Chaudy in bz3515; ok dtucker@
+
+OpenBSD-Commit-ID: c5678a39f1ff79993d5ae3cfac5746a4ae148ea5
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=b3daa8dc582348d6ab8150bc1e571b7aa08c5388
+---
+ readconf.c | 67 +++++++++++++++++++++++++++++-------------------------
+ 1 file changed, 36 insertions(+), 31 deletions(-)
+
+diff --git a/readconf.c b/readconf.c
+index 284da26..ccac632 100644
+--- a/readconf.c
++++ b/readconf.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: readconf.c,v 1.369 2022/09/17 10:33:18 djm Exp $ */
++/* $OpenBSD: readconf.c,v 1.371 2023/01/02 07:03:30 djm Exp $ */
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+@@ -1613,45 +1613,50 @@ parse_pubkey_algos:
+ 	case oPermitRemoteOpen:
+ 		uintptr = &options->num_permitted_remote_opens;
+ 		cppptr = &options->permitted_remote_opens;
+-		arg = argv_next(&ac, &av);
+-		if (!arg || *arg == '\0')
+-			fatal("%s line %d: missing %s specification",
+-			    filename, linenum, lookup_opcode_name(opcode));
+ 		uvalue = *uintptr;	/* modified later */
+-		if (strcmp(arg, "any") == 0 || strcmp(arg, "none") == 0) {
+-			if (*activep && uvalue == 0) {
+-				*uintptr = 1;
+-				*cppptr = xcalloc(1, sizeof(**cppptr));
+-				(*cppptr)[0] = xstrdup(arg);
+-			}
+-			break;
+-		}
++		i = 0;
+ 		while ((arg = argv_next(&ac, &av)) != NULL) {
+ 			arg2 = xstrdup(arg);
+-			p = hpdelim(&arg);
+-			if (p == NULL) {
+-				fatal("%s line %d: missing host in %s",
+-				    filename, linenum,
+-				    lookup_opcode_name(opcode));
+-			}
+-			p = cleanhostname(p);
+-			/*
+-			 * don't want to use permitopen_port to avoid
+-			 * dependency on channels.[ch] here.
+-			 */
+-			if (arg == NULL ||
+-			    (strcmp(arg, "*") != 0 && a2port(arg) <= 0)) {
+-				fatal("%s line %d: bad port number in %s",
+-				    filename, linenum,
+-				    lookup_opcode_name(opcode));
+-			}
+-			if (*activep && uvalue == 0) {
++			/* Allow any/none only in first position */
++			if (strcasecmp(arg, "none") == 0 ||
++			    strcasecmp(arg, "any") == 0) {
++				if (i > 0 || ac > 0) {
++					error("%s line %d: keyword %s \"%s\" "
++					    "argument must appear alone.",
++					    filename, linenum, keyword, arg);
++					goto out;
++				}
++			} else {
++				p = hpdelim(&arg);
++				if (p == NULL) {
++					fatal("%s line %d: missing host in %s",
++					    filename, linenum,
++					    lookup_opcode_name(opcode));
++				}
++				p = cleanhostname(p);
++				/*
++				 * don't want to use permitopen_port to avoid
++				 * dependency on channels.[ch] here.
++				 */
++				if (arg == NULL || (strcmp(arg, "*") != 0 &&
++				    a2port(arg) <= 0)) {
++					fatal("%s line %d: bad port number "
++					    "in %s", filename, linenum,
++					    lookup_opcode_name(opcode));
++				}
++ 			}
++			
++            if (*activep && uvalue == 0) {
+ 				opt_array_append(filename, linenum,
+ 				    lookup_opcode_name(opcode),
+ 				    cppptr, uintptr, arg2);
+ 			}
+ 			free(arg2);
++			i++;
+ 		}
++		if (i == 0)
++			fatal("%s line %d: missing %s specification",
++			    filename, linenum, lookup_opcode_name(opcode));
+ 		break;
+ 
+ 	case oClearAllForwardings:
+-- 
+2.23.0
+

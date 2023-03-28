@@ -1,0 +1,34 @@
+From 18376847b8043ba967eabbe23692ef74c9a3fddc Mon Sep 17 00:00:00 2001
+From: "jsg@openbsd.org" <jsg@openbsd.org>
+Date: Thu, 13 Oct 2022 09:09:28 +0000
+Subject: [PATCH] upstream: use correct type with sizeof ok djm@
+
+OpenBSD-Commit-ID: d6c882c2e8a42ff831a5b3cbc2c961ecb2dd6143
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=18376847b8043ba967eabbe23692ef74c9a3fddc
+---
+ ssh.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/ssh.c b/ssh.c
+index e711dbd2..21cbd7c3 100644
+--- a/ssh.c
++++ b/ssh.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: ssh.c,v 1.577 2022/10/06 22:42:37 djm Exp $ */
++/* $OpenBSD: ssh.c,v 1.578 2022/10/13 09:09:28 jsg Exp $ */
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+@@ -1579,7 +1579,7 @@ main(int ac, char **av)
+ 	if (options.hostbased_authentication) {
+ 		sensitive_data.nkeys = 10;
+ 		sensitive_data.keys = xcalloc(sensitive_data.nkeys,
+-		    sizeof(struct sshkey));
++		    sizeof(*sensitive_data.keys));
+ 
+ 		/* XXX check errors? */
+ #define L_PUBKEY(p,o) do { \
+-- 
+2.27.0
+

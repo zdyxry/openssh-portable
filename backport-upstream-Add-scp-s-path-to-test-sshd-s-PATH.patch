@@ -1,0 +1,37 @@
+From 6e6f88647042b3cde54a628545c2f5fb656a9327 Mon Sep 17 00:00:00 2001
+From: "dtucker@openbsd.org" <dtucker@openbsd.org>
+Date: Fri, 13 Jan 2023 04:23:00 +0000
+Subject: [PATCH] upstream: Add scp's path to test sshd's PATH.
+
+If the scp we're testing is fully qualified (eg it's not in the system
+PATH) then add its path to the under-test sshd's PATH so we can find
+it. Prompted by bz#3518.
+
+OpenBSD-Regress-ID: 7df4f5a0be3aa135495b7e5a6719d3cbc26cc4c0
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=6e6f88647042b3cde54a628545c2f5fb656a9327
+---
+ regress/test-exec.sh | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/regress/test-exec.sh b/regress/test-exec.sh
+index c51f8eac..5a6afac5 100644
+--- a/regress/test-exec.sh
++++ b/regress/test-exec.sh
+@@ -529,6 +529,13 @@ cat << EOF > $OBJ/sshd_config
+ 	Subsystem	sftp	$SFTPSERVER
+ EOF
+ 
++# If we're testing a non-installed scp, add its directory to sshd's PATH
++# so we can test it.
++case "$SCP" in
++/*)	PATH_WITH_SCP="`dirname $SCP`:$PATH"
++	echo "	SetEnv PATH='$PATH_WITH_SCP'" >>$OBJ/sshd_config ;;
++esac
++
+ # This may be necessary if /usr/src and/or /usr/obj are group-writable,
+ # but if you aren't careful with permissions then the unit tests could
+ # be abused to locally escalate privileges.
+-- 
+2.27.0
+

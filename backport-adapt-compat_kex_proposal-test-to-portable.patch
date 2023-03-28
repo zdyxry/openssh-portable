@@ -1,0 +1,51 @@
+From 9fe207565b4ab0fe5d1ac5bb85e39188d96fb214 Mon Sep 17 00:00:00 2001
+From: Damien Miller <djm@mindrot.org>
+Date: Thu, 2 Feb 2023 23:17:49 +1100
+Subject: [PATCH] adapt compat_kex_proposal() test to portable
+
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=9fe207565b4ab0fe5d1ac5bb85e39188d96fb214
+---
+ Makefile.in                           | 1 +
+ regress/unittests/kex/test_proposal.c | 6 +++++-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 18f6ac9e..c0ebfa04 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -616,6 +616,7 @@ regress/unittests/conversion/test_conversion$(EXEEXT): \
+ UNITTESTS_TEST_KEX_OBJS=\
+ 	regress/unittests/kex/tests.o \
+ 	regress/unittests/kex/test_kex.o \
++	regress/unittests/kex/test_proposal.o \
+ 	$(SKOBJS)
+ 
+ regress/unittests/kex/test_kex$(EXEEXT): ${UNITTESTS_TEST_KEX_OBJS} \
+diff --git a/regress/unittests/kex/test_proposal.c b/regress/unittests/kex/test_proposal.c
+index b89ff59b..d6cf0f5d 100644
+--- a/regress/unittests/kex/test_proposal.c
++++ b/regress/unittests/kex/test_proposal.c
+@@ -5,14 +5,18 @@
+  * Placed in the public domain
+  */
+ 
++#include "includes.h"
++
+ #include <sys/types.h>
+ #include <signal.h>
+ #include <stdio.h>
++#ifdef HAVE_STDINT_H
+ #include <stdint.h>
++#endif
+ #include <stdlib.h>
+ #include <string.h>
+ 
+-#include "test_helper.h"
++#include "../test_helper/test_helper.h"
+ 
+ #include "compat.h"
+ #include "ssherr.h"
+-- 
+2.27.0
+

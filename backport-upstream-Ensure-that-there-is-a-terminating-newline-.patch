@@ -1,0 +1,48 @@
+From 3c379c9a849a635cc7f05cbe49fe473ccf469ef9 Mon Sep 17 00:00:00 2001
+From: "dtucker@openbsd.org" <dtucker@openbsd.org>
+Date: Thu, 9 Feb 2023 09:54:11 +0000
+Subject: [PATCH] upstream: Ensure that there is a terminating newline when
+ adding a new
+
+entry to known_hosts.  bz#3529, with git+openssh at limpsquid.nl, ok deraadt@
+markus@
+
+OpenBSD-Commit-ID: fa8d90698da1886570512b96f051e266eac105e0
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=3c379c9a849a635cc7f05cbe49fe473ccf469ef9
+---
+ hostfile.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/hostfile.c b/hostfile.c
+index bd49e3ac..f5fa8084 100644
+--- a/hostfile.c
++++ b/hostfile.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: hostfile.c,v 1.93 2022/01/06 22:02:52 djm Exp $ */
++/* $OpenBSD: hostfile.c,v 1.94 2023/02/09 09:54:11 dtucker Exp $ */
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+@@ -520,9 +520,17 @@ add_host_to_hostfile(const char *filename, const char *host,
+ 	if (key == NULL)
+ 		return 1;	/* XXX ? */
+ 	hostfile_create_user_ssh_dir(filename, 0);
+-	f = fopen(filename, "a");
++	f = fopen(filename, "a+");
+ 	if (!f)
+ 		return 0;
++	/* Make sure we have a terminating newline. */
++	if (fseek(f, -1L, SEEK_END) == 0 && fgetc(f) != '\n')
++		if (fputc('\n', f) != '\n') {
++			error("Failed to add terminating newline to %s: %s",
++			   filename, strerror(errno));
++			fclose(f);
++			return 0;
++		}
+ 	success = write_host_entry(f, host, NULL, key, store_hash);
+ 	fclose(f);
+ 	return success;
+-- 
+2.27.0
+

@@ -1,0 +1,32 @@
+From 018d671d78145f03d6f07ae9d64d51321da70325 Mon Sep 17 00:00:00 2001
+From: "tb@openbsd.org" <tb@openbsd.org>
+Date: Wed, 4 Jan 2023 22:48:57 +0000
+Subject: [PATCH] upstream: Copy bytes from the_banana[] rather than banana()
+
+Fixes test failure due to segfault seen on arm64 with xonly snap.
+
+ok djm
+
+OpenBSD-Regress-ID: 86e2aa4bbd1dff1bc4ebb2969c0d6474485be046
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=018d671d78145f03d6f07ae9d64d51321da70325
+---
+ regress/unittests/sshkey/test_sshkey.c | 2 +-
+ 1 file changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/regress/unittests/sshkey/test_sshkey.c b/regress/unittests/sshkey/test_sshkey.c
+index 982907ce..cc359aea 100644
+--- a/regress/unittests/sshkey/test_sshkey.c
++++ b/regress/unittests/sshkey/test_sshkey.c
+@@ -144,7 +144,7 @@ banana(u_char *s, size_t l)
+ 			memcpy(s + o, "nanananana", l - o);
+ 			break;
+ 		}
+-		memcpy(s + o, banana, sizeof(the_banana));
++		memcpy(s + o, the_banana, sizeof(the_banana));
+ 	}
+ }
+ 
+-- 
+2.27.0
+

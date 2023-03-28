@@ -1,0 +1,37 @@
+From 5ee2b8ccfcf4b606f450eb0ff2305e311f68b0be Mon Sep 17 00:00:00 2001
+From: "djm@openbsd.org" <djm@openbsd.org>
+Date: Thu, 6 Oct 2022 22:42:37 +0000
+Subject: [PATCH] upstream: honour user's umask if it is more restrictive then
+ the ssh
+
+default (022); based on patch from Alex Henrie, ok dtucker@ deraadt@
+
+OpenBSD-Commit-ID: fe1b9e15fc9a4f49fc338e848ce14d8727abe82d
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=5ee2b8ccfcf4b606f450eb0ff2305e311f68b0be
+---
+ ssh.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/ssh.c b/ssh.c
+index 25be53d5..e711dbd2 100644
+--- a/ssh.c
++++ b/ssh.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: ssh.c,v 1.576 2022/09/17 10:33:18 djm Exp $ */
++/* $OpenBSD: ssh.c,v 1.577 2022/10/06 22:42:37 djm Exp $ */
+ /*
+  * Author: Tatu Ylonen <ylo@cs.hut.fi>
+  * Copyright (c) 1995 Tatu Ylonen <ylo@cs.hut.fi>, Espoo, Finland
+@@ -679,7 +679,7 @@ main(int ac, char **av)
+ 	 * writable only by the owner, which is ok for all files for which we
+ 	 * don't set the modes explicitly.
+ 	 */
+-	umask(022);
++	umask(022 | umask(077));
+ 
+ 	msetlocale();
+ 
+-- 
+2.27.0
+

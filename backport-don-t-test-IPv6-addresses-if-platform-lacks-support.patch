@@ -1,0 +1,52 @@
+From dd1249bd5c45128a908395c61b26996a70f82205 Mon Sep 17 00:00:00 2001
+From: Damien Miller <djm@mindrot.org>
+Date: Sun, 8 Jan 2023 12:08:59 +1100
+Subject: [PATCH] don't test IPv6 addresses if platform lacks support
+
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=dd1249bd5c45128a908395c61b26996a70f82205
+
+---
+ regress/dynamic-forward.sh | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/regress/dynamic-forward.sh b/regress/dynamic-forward.sh
+index f6c2393..1bfe05a 100644
+--- a/regress/dynamic-forward.sh
++++ b/regress/dynamic-forward.sh
+@@ -17,6 +17,11 @@ else
+ fi
+ trace "will use ProxyCommand $proxycmd"
+ 
++# This is a reasonable proxy for IPv6 support.
++if ! config_defined HAVE_STRUCT_IN6_ADDR ; then
++       SKIP_IPV6=yes
++fi
++
+ start_ssh() {
+ 	direction="$1"
+ 	arg="$2"
+@@ -96,14 +101,16 @@ for d in D R; do
+ 	stop_ssh
+ 
+ 	verbose "PermitRemoteOpen=explicit"
+-	start_ssh $d \
+-	    PermitRemoteOpen="127.0.0.1:$PORT [::1]:$PORT localhost:$PORT"
++	permit="127.0.0.1:$PORT [::1]:$PORT localhost:$PORT"
++	test -z "$SKIP_IPV6" || permit="127.0.0.1:$PORT localhost:$PORT"
++	start_ssh $d PermitRemoteOpen="$permit"
+ 	check_socks $d Y
+ 	stop_ssh
+ 
+ 	verbose "PermitRemoteOpen=disallowed"
+-	start_ssh $d \
+-	    PermitRemoteOpen="127.0.0.1:1 [::1]:1 localhost:1"
++	permit="127.0.0.1:1 [::1]:1 localhost:1"
++	test -z "$SKIP_IPV6" || permit="127.0.0.1:1 localhost:1"
++	start_ssh $d PermitRemoteOpen="$permit"
+ 	check_socks $d N
+ 	stop_ssh
+ done
+-- 
+2.27.0
+

@@ -1,0 +1,40 @@
+From 5a7a7acab2f466dc1d7467b5d05d35268c3137aa Mon Sep 17 00:00:00 2001
+From: "deraadt@openbsd.org" <deraadt@openbsd.org>
+Date: Thu, 15 Dec 2022 18:20:39 +0000
+Subject: [PATCH] upstream: The idiomatic way of coping with signed char vs
+ unsigned
+
+char (which did not come from stdio read functions) in the presence of
+ctype macros, is to always cast to (unsigned char).  casting to (int)
+for a "macro" which is documented to take int, is weird.  And sadly wrong,
+because of the sing extension risk.. same diff from florian
+
+OpenBSD-Commit-ID: 65b9a49a68e22ff3a0ebd593f363e9f22dd73fea
+Conflict:NA
+Reference:https://anongit.mindrot.org/openssh.git/commit?id=5a7a7acab2f466dc1d7467b5d05d35268c3137aa
+---
+ misc.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/misc.c b/misc.c
+index 977c097e..41244da9 100644
+--- a/misc.c
++++ b/misc.c
+@@ -1,4 +1,4 @@
+-/* $OpenBSD: misc.c,v 1.177 2022/08/11 01:56:51 djm Exp $ */
++/* $OpenBSD: misc.c,v 1.179 2022/12/15 18:20:39 deraadt Exp $ */
+ /*
+  * Copyright (c) 2000 Markus Friedl.  All rights reserved.
+  * Copyright (c) 2005-2020 Damien Miller.  All rights reserved.
+@@ -95,7 +95,7 @@ rtrim(char *s)
+ 	if ((i = strlen(s)) == 0)
+ 		return;
+ 	for (i--; i > 0; i--) {
+-		if (isspace((int)s[i]))
++		if (isspace((unsigned char)s[i]))
+ 			s[i] = '\0';
+ 	}
+ }
+-- 
+2.27.0
+
