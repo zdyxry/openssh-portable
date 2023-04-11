@@ -6,10 +6,10 @@
 %{?no_gtk2:%global gtk2 0}
 
 %global sshd_uid    74
-%global openssh_release 4
+%global openssh_release 1
 
 Name:           openssh
-Version:        9.1p1
+Version:        9.3p1
 Release:        %{openssh_release}
 URL:            http://www.openssh.com/portable.html
 License:        BSD
@@ -31,9 +31,9 @@ Source12:       sshd.tmpfiles
 Source13:       sshd-keygen.target
 Source14:       ssh-agent.service
 Source15:       ssh-keygen-bash-completion.sh
-Patch0:         openssh-6.7p1-coverity.patch
-Patch1:         openssh-7.6p1-audit.patch
-Patch2:         openssh-7.1p2-audit-race-condition.patch
+#Patch0:         openssh-6.7p1-coverity.patch
+#Patch1:         openssh-7.6p1-audit.patch
+#Patch2:         openssh-7.1p2-audit-race-condition.patch
 Patch3:         pam_ssh_agent_auth-0.9.3-build.patch
 Patch4:         pam_ssh_agent_auth-0.10.3-seteuid.patch
 Patch5:         pam_ssh_agent_auth-0.9.2-visibility.patch
@@ -51,12 +51,12 @@ Patch19:        openssh-5.1p1-askpass-progress.patch
 Patch20:        openssh-4.3p2-askpass-grab-info.patch
 Patch21:        openssh-7.7p1.patch
 Patch22:        openssh-7.8p1-UsePAM-warning.patch
-Patch26:        openssh-8.0p1-gssapi-keyex.patch
+#Patch26:        openssh-8.0p1-gssapi-keyex.patch
 Patch27:        openssh-6.6p1-force_krb.patch
-Patch28:        openssh-6.6p1-GSSAPIEnablek5users.patch
-Patch29:        openssh-7.7p1-gssapi-new-unique.patch
-Patch30:        openssh-7.2p2-k5login_directory.patch
-Patch31:        openssh-6.6p1-kuserok.patch
+#Patch28:        openssh-6.6p1-GSSAPIEnablek5users.patch
+#Patch29:        openssh-7.7p1-gssapi-new-unique.patch
+#Patch30:        openssh-7.2p2-k5login_directory.patch
+#Patch31:        openssh-6.6p1-kuserok.patch
 Patch32:        openssh-6.4p1-fromto-remote.patch
 Patch33:        openssh-6.6.1p1-selinux-contexts.patch
 Patch34:        openssh-6.6.1p1-log-in-chroot.patch
@@ -64,53 +64,53 @@ Patch35:        openssh-6.6.1p1-scp-non-existing-directory.patch
 Patch36:        openssh-6.8p1-sshdT-output.patch
 Patch37:        openssh-6.7p1-sftp-force-permission.patch
 Patch38:        openssh-7.2p2-s390-closefrom.patch
-Patch39:        openssh-7.3p1-x11-max-displays.patch
+#Patch39:        openssh-7.3p1-x11-max-displays.patch
 Patch40:        openssh-7.4p1-systemd.patch
 Patch41:        openssh-7.6p1-cleanup-selinux.patch
-Patch42:        openssh-7.5p1-sandbox.patch
-Patch43:        openssh-8.0p1-pkcs11-uri.patch
+#Patch42:        openssh-7.5p1-sandbox.patch
+#Patch43:        openssh-8.0p1-pkcs11-uri.patch
 Patch44:        openssh-7.8p1-scp-ipv6.patch
-Patch46:        openssh-8.0p1-crypto-policies.patch
-Patch47:        openssh-8.0p1-openssl-evp.patch
+#Patch46:        openssh-8.0p1-crypto-policies.patch
+#Patch47:        openssh-8.0p1-openssl-evp.patch
 Patch48:        openssh-8.0p1-openssl-kdf.patch
 Patch49:        openssh-8.2p1-visibility.patch
 Patch50:        openssh-8.2p1-x11-without-ipv6.patch
 Patch51:        openssh-8.0p1-keygen-strip-doseol.patch
 Patch52:        openssh-8.0p1-preserve-pam-errors.patch
-Patch53:        openssh-8.7p1-scp-kill-switch.patch
+#Patch53:        openssh-8.7p1-scp-kill-switch.patch
 Patch54:        bugfix-sftp-when-parse_user_host_path-empty-path-should-be-allowed.patch
-Patch56:        bugfix-openssh-add-option-check-username-splash.patch
+#Patch56:        bugfix-openssh-add-option-check-username-splash.patch
 Patch57:        feature-openssh-7.4-hima-sftpserver-oom-and-fix.patch
 Patch58:        bugfix-openssh-fix-sftpserver.patch
-Patch59:        set-sshd-config.patch
-Patch60:        feature-add-SMx-support.patch
+#Patch59:        set-sshd-config.patch
+#Patch60:        feature-add-SMx-support.patch
 Patch63:        add-loongarch.patch
 Patch65:        openssh-Add-sw64-architecture.patch
-Patch74:        add-strict-scp-check-for-CVE-2020-15778.patch
+#Patch74:        add-strict-scp-check-for-CVE-2020-15778.patch
 Patch77:        skip-scp-test-if-there-is-no-scp-on-remote-path-as-s.patch
-Patch78:        backport-upstream-CVE-2023-25136-fix-double-free-caused.patch
+#Patch78:        backport-upstream-CVE-2023-25136-fix-double-free-caused.patch
 Patch79:        set-ssh-config.patch
-Patch80:        backport-upstream-honour-user-s-umask-if-it-is-more-restricti.patch
-Patch81:        backport-upstream-use-correct-type-with-sizeof-ok-djm.patch
-Patch82:        backport-Defer-seed_rng-until-after-closefrom-call.patch
-Patch83:        backport-upstream-Handle-dynamic-remote-port-forwarding-in-es.patch
-Patch84:        backport-upstream-The-idiomatic-way-of-coping-with-signed-cha.patch
-Patch85:        backport-upstream-Clear-signal-mask-early-in-main-sshd-may-ha.patch
-Patch86:        backport-upstream-fix-bug-in-PermitRemoteOpen-which-caused-it.patch
-Patch87:        backport-upstream-regression-test-for-PermitRemoteOpen.patch
-Patch88:        backport-upstream-Copy-bytes-from-the_banana-rather-than-bana.patch
-Patch89:        backport-upstream-When-OpenSSL-is-not-available-skip-parts-of.patch
-Patch90:        backport-don-t-test-IPv6-addresses-if-platform-lacks-support.patch
-Patch91:        backport-upstream-avoid-printf-s-NULL-if-using-ssh.patch
-Patch92:        backport-upstream-Add-scp-s-path-to-test-sshd-s-PATH.patch
-Patch93:        backport-upstream-Instead-of-skipping-the-all-tokens-test-if-.patch
-Patch94:        backport-upstream-Shell-syntax-fix.-From-ren-mingshuai-vi-git.patch
-Patch95:        backport-Allow-writev-is-seccomp-sandbox.patch
-Patch96:        backport-upstream-Ensure-that-there-is-a-terminating-newline-.patch
-Patch97:        backport-upstream-when-restoring-non-blocking-mode-to-stdio-f.patch
-Patch98:        backport-upstream-test-compat_kex_proposal-by-dtucker.patch
-Patch99:        backport-adapt-compat_kex_proposal-test-to-portable.patch
-Patch100:       backport-upstream-Move-scp-path-setting-to-a-helper-function.patch
+#Patch80:        backport-upstream-honour-user-s-umask-if-it-is-more-restricti.patch
+#Patch81:        backport-upstream-use-correct-type-with-sizeof-ok-djm.patch
+#Patch82:        backport-Defer-seed_rng-until-after-closefrom-call.patch
+#Patch83:        backport-upstream-Handle-dynamic-remote-port-forwarding-in-es.patch
+#Patch84:        backport-upstream-The-idiomatic-way-of-coping-with-signed-cha.patch
+#Patch85:        backport-upstream-Clear-signal-mask-early-in-main-sshd-may-ha.patch
+#Patch86:        backport-upstream-fix-bug-in-PermitRemoteOpen-which-caused-it.patch
+#Patch87:        backport-upstream-regression-test-for-PermitRemoteOpen.patch
+#Patch88:        backport-upstream-Copy-bytes-from-the_banana-rather-than-bana.patch
+#Patch89:        backport-upstream-When-OpenSSL-is-not-available-skip-parts-of.patch
+#Patch90:        backport-don-t-test-IPv6-addresses-if-platform-lacks-support.patch
+#Patch91:        backport-upstream-avoid-printf-s-NULL-if-using-ssh.patch
+#Patch92:        backport-upstream-Add-scp-s-path-to-test-sshd-s-PATH.patch
+#Patch93:        backport-upstream-Instead-of-skipping-the-all-tokens-test-if-.patch
+#Patch94:        backport-upstream-Shell-syntax-fix.-From-ren-mingshuai-vi-git.patch
+#Patch95:        backport-Allow-writev-is-seccomp-sandbox.patch
+#Patch96:        backport-upstream-Ensure-that-there-is-a-terminating-newline-.patch
+#Patch97:        backport-upstream-when-restoring-non-blocking-mode-to-stdio-f.patch
+#Patch98:        backport-upstream-test-compat_kex_proposal-by-dtucker.patch
+#Patch99:        backport-adapt-compat_kex_proposal-test-to-portable.patch
+#Patch100:       backport-upstream-Move-scp-path-setting-to-a-helper-function.patch
 
 Requires:       /sbin/nologin
 Requires:       libselinux >= 2.3-5 audit-libs >= 1.0.8
@@ -208,69 +208,69 @@ popd
 %patch20 -p1 -b .grab-info
 %patch21 -p1
 %patch22 -p1 -b .log-usepam-no
-%patch26 -p1 -b .gsskex
+#%patch26 -p1 -b .gsskex
 %patch27 -p1 -b .force_krb
-%patch29 -p1 -b .ccache_name
-%patch30 -p1 -b .k5login
-%patch31 -p1 -b .kuserok
+#%patch29 -p1 -b .ccache_name
+#%patch30 -p1 -b .k5login
+#%patch31 -p1 -b .kuserok
 %patch32 -p1 -b .fromto-remote
 %patch33 -p1 -b .contexts
 %patch34 -p1 -b .log-in-chroot
 %patch35 -p1 -b .scp
-%patch28 -p1 -b .GSSAPIEnablek5users
+#%patch28 -p1 -b .GSSAPIEnablek5users
 %patch36 -p1 -b .sshdt
 %patch37 -p1 -b .sftp-force-mode
 %patch38 -p1 -b .s390-dev
-%patch39 -p1 -b .x11max
+#%patch39 -p1 -b .x11max
 %patch40 -p1 -b .systemd
 %patch41 -p1 -b .refactor
-%patch42 -p1 -b .sandbox
-%patch43 -p1 -b .pkcs11-uri
+#%patch42 -p1 -b .sandbox
+#%patch43 -p1 -b .pkcs11-uri
 %patch44 -p1 -b .scp-ipv6
-%patch46 -p1 -b .crypto-policies
-%patch47 -p1 -b .openssl-evp
+#%patch46 -p1 -b .crypto-policies
+#%patch47 -p1 -b .openssl-evp
 %patch48 -p1 -b .openssl-kdf
 %patch49 -p1 -b .visibility
 %patch50 -p1 -b .x11-ipv6
 %patch51 -p1 -b .keygen-strip-doseol
 %patch52 -p1 -b .preserve-pam-errors
-%patch53 -p1 -b .kill-scp
-%patch1 -p1 -b .audit
-%patch2 -p1 -b .audit-race
-%patch0 -p1 -b .coverity
+#%patch53 -p1 -b .kill-scp
+#%patch1 -p1 -b .audit
+#%patch2 -p1 -b .audit-race
+#%patch0 -p1 -b .coverity
 %patch54 -p1
-%patch56 -p1
+#%patch56 -p1
 %patch57 -p1
 %patch58 -p1
-%patch59 -p1
-%patch60 -p1
+#%patch59 -p1
+#%patch60 -p1
 %patch63 -p1
 %patch65 -p1
-%patch74 -p1
+#%patch74 -p1
 %patch77 -p1
-%patch78 -p1
+#%patch78 -p1
 %patch79 -p1
-%patch80 -p1
-%patch81 -p1
-%patch82 -p1
-%patch83 -p1
-%patch84 -p1
-%patch85 -p1
-%patch86 -p1
-%patch87 -p1
-%patch88 -p1
-%patch89 -p1
-%patch90 -p1
-%patch91 -p1
-%patch92 -p1
-%patch93 -p1
-%patch94 -p1
-%patch95 -p1
-%patch96 -p1
-%patch97 -p1
-%patch98 -p1
-%patch99 -p1
-%patch100 -p1
+#%patch80 -p1
+#%patch81 -p1
+#%patch82 -p1
+#%patch83 -p1
+#%patch84 -p1
+#%patch85 -p1
+#%patch86 -p1
+#%patch87 -p1
+#%patch88 -p1
+#%patch89 -p1
+#%patch90 -p1
+#%patch91 -p1
+#%patch92 -p1
+#%patch93 -p1
+#%patch94 -p1
+#%patch95 -p1
+#%patch96 -p1
+#%patch97 -p1
+#%patch98 -p1
+#%patch99 -p1
+#%patch100 -p1
 
 autoreconf
 pushd pam_ssh_agent_auth-pam_ssh_agent_auth-0.10.4
