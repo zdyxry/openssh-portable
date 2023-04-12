@@ -89,7 +89,7 @@ Patch65:        openssh-Add-sw64-architecture.patch
 #Patch74:        add-strict-scp-check-for-CVE-2020-15778.patch
 Patch77:        skip-scp-test-if-there-is-no-scp-on-remote-path-as-s.patch
 #Patch78:        backport-upstream-CVE-2023-25136-fix-double-free-caused.patch
-Patch79:        set-ssh-config.patch
+#Patch79:        set-ssh-config.patch
 #Patch80:        backport-upstream-honour-user-s-umask-if-it-is-more-restricti.patch
 #Patch81:        backport-upstream-use-correct-type-with-sizeof-ok-djm.patch
 #Patch82:        backport-Defer-seed_rng-until-after-closefrom-call.patch
@@ -249,7 +249,7 @@ popd
 #%patch74 -p1
 %patch77 -p1
 #%patch78 -p1
-%patch79 -p1
+#%patch79 -p1
 #%patch80 -p1
 #%patch81 -p1
 #%patch82 -p1
